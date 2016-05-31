@@ -9,6 +9,8 @@ var db = new TransactionDatabase(
 //start GPSD
 var gpsd = require('node-gpsd');
 var gpsd = require('./lib/gpsd.js');
+var previousGpsdTime = new Date(); //keep track of the last time we got a GPSD cvalue
+var GpsdInterval = 1;//how often (seconds) to use GPSD data
 var daemon = new gpsd.Daemon({
     program: 'gpsd',
     device: '/dev/ttyAMA0',
@@ -24,14 +26,20 @@ daemon.start(function() {
     console.log('Started GPSD daemon');
 	var listener = new gpsd.Listener();
     listener.on('TPV', function (tpv) {
-        //console.log(tpv);
-		var statement = db.prepare("INSERT INTO GpsLog VALUES (?, ?, ?, ?, ?)");
-		// Insert values into prepared statement
-		var lat = tpv.lat + .603847;
-		var lon = tpv.lon + .32234452;
-		statement.run( tpv.time, lat, lon, tpv.alt, tpv.speed );
-		// Execute the statement
-		statement.finalize();
+		//only collect data every GpsdInterval
+		if((((new Date()).getTime() - previousGpsdTime.getTime()) / 1000) > GpsdInterval){
+			previousGpsdTime = new Date();
+			//console.log(tpv);
+			var statement = db.prepare("INSERT INTO GpsLog VALUES (?, ?, ?, ?, ?)");
+			// Insert values into prepared statement
+			var lat = tpv.lat;
+			var lon = tpv.lon;
+			statement.run( tpv.time, lat, lon, tpv.alt, tpv.speed );
+			// Execute the statement
+			statement.finalize();
+			//send info to Python socket
+			
+		}
     });
     listener.connect(function() {
         listener.watch();

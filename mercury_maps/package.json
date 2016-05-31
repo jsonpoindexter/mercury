@@ -1,8 +1,8 @@
 {
-  "name": "lesson-03-c",
+  "name": "mercury_maps",
   "version": "1.0.0",
-  "description": "Simple Express app with a popular middleware for serving static files",
-  "author": "Tony Pujals <tony@subfuzion.com> (http://twitter.com/subfuzion)",
+  "description": "Offline maps",
+  "author": "JPoindexter",
   "license": "MIT",
   "scripts": {
     "start": "node app.js"
@@ -11,7 +11,7 @@
     "body-parser": "^1.15.1",
     "express": "^4.9.7",
     "morgan": "^1.3.2",
-    "node-gpsd": "^1.7.0",
+    "node-gpsd": "^0.2.5",
     "sqlite3": "^3.1.3",
     "sqlite3-transactions": "0.0.5"
   },
