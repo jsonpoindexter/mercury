@@ -6,6 +6,30 @@ var db = new TransactionDatabase(
     new sqlite3.Database("/home/pi/projects/node/mapboxinexpress_001/mercery.db", sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE)
 );
 
+//Socket Server communication 
+var net = require('net');
+var HOST = '127.0.0.1';
+var clientPORT = 4001;
+
+var client = new net.Socket();
+client.connect(clientPORT, HOST, function(err) {
+  console.log('CONNECTED TO: ' + HOST + ':' + clientPORT);
+  if (err)  return next(err);
+});
+
+client.on('error', function(err) {
+  console.log('Connection error');
+  console.log(err);
+  //client.destroy();
+});
+
+client.on('data', function(data) {
+  console.log("Received data!" );
+  //client.destroy();
+  //data recevied
+  console.log('data: ' + data);
+});
+
 //start GPSD
 var gpsd = require('node-gpsd');
 var gpsd = require('./lib/gpsd.js');
@@ -38,7 +62,7 @@ daemon.start(function() {
 			// Execute the statement
 			statement.finalize();
 			//send info to Python socket
-			
+			client.write(JSON.stringify('12345'));
 		}
     });
     listener.connect(function() {
@@ -80,7 +104,6 @@ app.get('/bm15/fence.json',function(req,res){
   res.sendfile(publicDir + '/bm15/fence.json');
 });
 
-
 function lastGpsCordinate(callback){
 	db.each("select time,lon,lat from gpslog order by time desc limit 1;", function (err, data) {
 		if (err) {
@@ -102,4 +125,3 @@ app.get('/GpsData.json', function(req, res) {
 app.listen(port);
 
 console.log('server started on port %s', port);
-
