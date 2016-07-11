@@ -11,8 +11,8 @@ class MyTCPServerHandler(SocketServer.BaseRequestHandler):
                 break
             print('data: ',data)
             #Process data
-            #rstr = (data);
-            #self.request.sendall(rstr);
+            rstr = (data);
+            self.request.sendall(rstr);
 if __name__ == '__main__':
     server = MyTCPServer(('127.0.0.1', 4001), MyTCPServerHandler)
     print('started socket server on 127.0.0.1:4001' )

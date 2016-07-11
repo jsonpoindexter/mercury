@@ -1,3 +1,8 @@
+// http://nodejs.org/api.html#_child_processes
+var sys = require('sys')
+var exec = require('child_process').exec;
+var child;
+
 //SQL
 var sqlite3 = require('sqlite3');
 TransactionDatabase = require("sqlite3-transactions").TransactionDatabase;
@@ -5,6 +10,18 @@ TransactionDatabase = require("sqlite3-transactions").TransactionDatabase;
 var db = new TransactionDatabase(
     new sqlite3.Database("/home/pi/projects/node/mapboxinexpress_001/mercery.db", sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE)
 );
+
+
+// Start socket server python scripts
+// executes `pkill` - make sure socketserver isnt already running
+child = exec("pkill -f socketserver_01.py");
+
+var PythonShell = require('python-shell');
+PythonShell.run('./socketserver_01.py', function (err, results) {
+  if (err) throw err;
+  // results is an array consisting of messages collected during execution 
+  console.log('results: %j', results);
+});
 
 //Socket Server communication 
 var net = require('net');
@@ -31,6 +48,9 @@ client.on('data', function(data) {
 });
 
 //start GPSD
+// executes `pkill` - make sure socketserver isnt already running
+child = exec("pkill -f gpsd");
+
 var gpsd = require('node-gpsd');
 var gpsd = require('./lib/gpsd.js');
 var previousGpsdTime = new Date(); //keep track of the last time we got a GPSD cvalue
@@ -61,8 +81,12 @@ daemon.start(function() {
 			statement.run( tpv.time, lat, lon, tpv.alt, tpv.speed );
 			// Execute the statement
 			statement.finalize();
-			//send info to Python socket
-			client.write(JSON.stringify('12345'));
+			//send info to Python socket / to broadcast
+            var jsonObj = {
+                'lat':tpv.lat,
+                'lon':tpv.lon
+            };
+			client.write(JSON.stringify(jsonObj));
 		}
     });
     listener.connect(function() {
@@ -89,19 +113,19 @@ app.use(bodyParser.json());
 // path doesn't match the static directory
 //app.use(express.static(publicDir));
 app.get('/index.html',function(req,res){
-  res.sendfile(publicDir + '/index.html');
+  res.sendFile(publicDir + '/index.html');
 });
 app.get('/markers/jpoindexter.jpg',function(req,res){
-  res.sendfile(publicDir + '/markers/jpoindexter.jpg');
+  res.sendFile(publicDir + '/markers/jpoindexter.jpg');
 });
 app.get('/bm15/streets.json',function(req,res){
-  res.sendfile(publicDir + '/bm15/streets.json');
+  res.sendFile(publicDir + '/bm15/streets.json');
 });
 app.get('/bm15/outline.json',function(req,res){
-  res.sendfile(publicDir + '/bm15/outline.json');
+  res.sendFile(publicDir + '/bm15/outline.json');
 });
 app.get('/bm15/fence.json',function(req,res){
-  res.sendfile(publicDir + '/bm15/fence.json');
+  res.sendFile(publicDir + '/bm15/fence.json');
 });
 
 function lastGpsCordinate(callback){

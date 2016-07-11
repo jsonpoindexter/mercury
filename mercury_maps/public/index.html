@@ -50,7 +50,7 @@
 		//create map
 		L.mapbox.accessToken = 'pk.eyJ1IjoibXVmZmluc2F1cnVzcmV4IiwiYSI6ImNpbnVuaDFvcjExeHJ1Mm0zbnczZXFtNWMifQ.EvWoIv6R42b2rQdPBhe3TA';
 		var mapOne = L.mapbox.map('map-one', 'mapbox.streets');
-		 mapOne.setView([0,0], 13);
+		mapOne.setView([0,0], 13);
 		var myLayer = L.mapbox.featureLayer().addTo(mapOne);
 		mapOne.scrollWheelZoom.disable();
 		//create marker properties
@@ -106,7 +106,7 @@
 				mapOne.setView([lat,lon]);
 				
 			});
-			setTimeout(getData, 500);
+			setTimeout(getData, 1000);
 		}
 		getData();
 	</script>
