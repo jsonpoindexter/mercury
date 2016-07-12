@@ -4,12 +4,12 @@ class MyTCPServer(SocketServer.ThreadingTCPServer):
 class MyTCPServerHandler(SocketServer.BaseRequestHandler):
     def handle(self):
         while 1:
-            print("Received data ... processing")
+            #print("Received data ... processing")
             #data = self.request.recv(1024).strip()
             data = (self.request.recv(1024).strip())
             if not data:
                 break
-            print('data: ',data)
+            #print('data: ',data)
             #Process data
             rstr = (data);
             self.request.sendall(rstr);
