@@ -41,10 +41,10 @@ client.on('error', function(err) {
 });
 
 client.on('data', function(data) {
-  console.log("Received data!" );
+  //console.log("Received data!" );
   //client.destroy();
   //data recevied
-  console.log('data: ' + data);
+  //console.log('data: ' + data);
 });
 
 //start GPSD
@@ -82,11 +82,11 @@ daemon.start(function() {
 			// Execute the statement
 			statement.finalize();
 			//send info to Python socket / to broadcast
-            var jsonObj = {
+            var data = {
                 'lat':tpv.lat,
                 'lon':tpv.lon
             };
-			client.write(JSON.stringify(jsonObj));
+			io.emit('data', data);
 		}
     });
     listener.connect(function() {
@@ -96,12 +96,14 @@ daemon.start(function() {
 
 
 // create an express app
-var express = require('express'),
-    app = express(),
+var app = require('express')();
     morgan = require('morgan'),
 	bodyParser = require('body-parser'),
     port = process.env.PORT || 3000,
-    publicDir = require('path').join(__dirname, '/public');
+    publicDir = require('path').join(__dirname, '/public'),
+    //socket server to web client
+    http = require('http').Server(app),
+    io = require('socket.io')(http);
 
 // add logging middleware
 app.use(morgan('dev'));
@@ -146,6 +148,15 @@ app.get('/GpsData.json', function(req, res) {
 	  res.send(data);         // automatic -> application/json
 	});
 });
-app.listen(port);
+
+//socket stuff
+io.on('connection', function(socket){
+  console.log('a user connected');
+  socket.on('disconnect', function(){
+    console.log('user disconnected');
+  });
+});
+
+http.listen(port);
 
 console.log('server started on port %s', port);
