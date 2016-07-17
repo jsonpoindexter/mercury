@@ -138,7 +138,9 @@ class LoRa(object):
 
     def on_fhss_change_channel(self):
         pass
-
+        
+    def on_PllLock(self):
+        pass
     # Internal callbacks for add_events()
 
     def _dio0(self, channel):
@@ -187,10 +189,35 @@ class LoRa(object):
             raise RuntimeError("unknown dio3 mapping!")
 
     def _dio4(self, channel):
-        raise RuntimeError("DIO4 is not used")
-
+        #self.on_PllLock()
+        pass
+        #raise RuntimeError("DIO4 is not used")
+        
+        # DIO4 00: CadDetected
+        # DIO4 01: PllLock
+        # DIO4 10: PllLock
+        #if self.dio_mapping[4] == 0:
+        #    print ('cad detected interrupt') #not implemented
+        #elif self.dio_mapping[4] == 1 or self.dio_mapping[4] == 2:
+        #    print ('PllLock interrupt') #not implemented 
+        #else:
+        #    raise RuntimeError("unknown dio4 mapping!")
+        
     def _dio5(self, channel):
-        raise RuntimeError("DIO5 is not used")
+        pass
+        #raise RuntimeError("DIO5 is not used")
+
+        # DI05 00: ModeReady
+        # DIO5 01: ClkOut
+        # DIO5 10: ClkOut
+        #if self.dio_mapping[5] == 0:
+        #    print ('Mode Ready interrupt') #not implemented
+        #elif self.dio_mapping[5] == 1 or self.dio_mapping[5] == 2:
+        #    print ('ClkOut interrupt') #not implemented 
+        #else:
+        #    raise RuntimeError("unknown dio5 mapping!")
+
+    # All the set/get/read/write functions
 
     # All the set/get/read/write functions
 
@@ -219,16 +246,28 @@ class LoRa(object):
         :param payload: Payload to write (list)
         :return:    Written payload
         """
-        self.set_mode(MODE.STDBY)
-        base_addr = self.get_fifo_tx_base_addr()
-        self.set_fifo_addr_ptr(base_addr)
-        return self.spi.xfer([REG.LORA.FIFO | 0x80] + payload)[1:]
+        #set payload size
+        payload_size = len(payload)
+        self.set_payload_length(payload_size)
+        if self.verbose:
+            sys.stderr.write("PAYLOAD SIZE=",self.get_payload_length(),"\n")
 
+        #cannot access fifo in sleep mode!
+        self.set_mode(MODE.STDBY)
+
+        #before we set fifo address pointer to base but changed to use full buffer
+        #base_addr = self.get_fifo_tx_base_addr() 
+        #self.set_fifo_addr_ptr(base_addr)
+
+        #use full buffer for tx
+        self.set_fifo_tx_base_addr(0)
+        self.set_fifo_addr_ptr(0)
+        return self.spi.xfer([REG.LORA.FIFO | 0x80] + payload)[1:]
     def reset_ptr_rx(self):
         """ Get FIFO ready for RX: Set FifoAddrPtr to FifoRxBaseAddr. The transceiver is put into STDBY mode. """
         self.set_mode(MODE.STDBY)
         base_addr = self.get_fifo_rx_base_addr()
-        self.set_fifo_addr_ptr(base_addr)
+        self.set_fifo_addr_ptr(base_addr) #Before any read or write operation it is necessary to initialize the FifoAddrPtr to the corresponding base value
 
     def rx_is_good(self):
         """ Check the IRQ flags for RX errors
@@ -247,6 +286,7 @@ class LoRa(object):
         if not nocheck and not self.rx_is_good():
             return None
         rx_nb_bytes = self.get_rx_nb_bytes()
+        #print('nb bytes',rx_nb_bytes)
         fifo_rx_current_addr = self.get_fifo_rx_current_addr()
         self.set_fifo_addr_ptr(fifo_rx_current_addr)
         payload = self.spi.xfer([REG.LORA.FIFO] + [0] * rx_nb_bytes)[1:]
@@ -439,6 +479,7 @@ class LoRa(object):
                 v = set_bit(v, i, this_bit)
         return self.spi.xfer([REG.LORA.IRQ_FLAGS | 0x80, v])[1]
 
+    #this function does not work (to be removed), call cclear_irq_flag_RxDone or clear_irq_flag_TxDone instead
     def clear_irq_flags(self):
         v = self.spi.xfer([REG.LORA.IRQ_FLAGS | 0x80, 0])[1]
         return v
@@ -743,6 +784,7 @@ class LoRa(object):
 
     def set_dio_mapping(self, mapping):
         """ Utility function that returns the list of current DIO mappings. Object variable dio_mapping will be set.
+         Mapping is set in device trough RegDioMapping1 (0x40) and RegDioMapping2 (0x41)
         :param mapping: DIO mapping list
         :type mapping: list[int]
         :return: New DIO mapping list
@@ -750,8 +792,8 @@ class LoRa(object):
         """
         mapping_1 = (mapping[0] & 0x03) << 6 | (mapping[1] & 0x03) << 4 | (mapping[2] & 0x3) << 2 | mapping[3] & 0x3
         mapping_2 = (mapping[4] & 0x03) << 6 | (mapping[5] & 0x03) << 4
-        self.set_dio_mapping_1(mapping_1)
-        return self.set_dio_mapping_2(mapping_2)
+        self.set_dio_mapping_1(mapping_1)# set RegDioMapping1
+        return self.set_dio_mapping_2(mapping_2)#set RegDioMapping2
 
     @getter(REG.LORA.VERSION)
     def get_version(self, version):

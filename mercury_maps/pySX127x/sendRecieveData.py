@@ -1,4 +1,23 @@
 ﻿#!/usr/bin/env python2.7
+#Set up socket client
+from socketIO_client import SocketIO, LoggingNamespace
+
+def sendData(self, payload):
+    self.set_payload_length(len(payload))
+    base_addr = self.get_fifo_tx_base_addr()
+    self.set_fifo_addr_ptr(base_addr)
+
+    self.spi.xfer([REG.LORA.FIFO | 0x80] + payload)[1:]
+    self.set_mode(MODE.TX)  # send Payload
+    print("send payload:", payload)
+    
+def on_data(*data):
+    print('on_data', data)
+    sendData(lora, list(data))
+    
+    
+socketIO = SocketIO('localhost', 3000, LoggingNamespace)
+socketIO.on('data', on_data)
 
 """ Ping Class """
 
@@ -18,17 +37,15 @@ from SX127x.board_config import BOARD
 
 BOARD.setup()
 
-print("test")
 
-payload_pong = [0xFF]
-payload_ping = [0xFF]
-
-class Ping(LoRa):
+class SendData(LoRa):
 	#Read data from stdin
+    
     def __init__(self, verbose=False):
-        super(Ping, self).__init__(verbose)
+        super(SendData, self).__init__(verbose)
         self.set_mode(MODE.SLEEP)
-        self.set_dio_mapping([1,0,0,0,0,0]) #DIO0 is set to TxDone
+        self.set_dio_mapping([0] * 6) #DIO0 is set to RxDone
+        #self.set_payload_length(1)
 
         """ DIO Mapping     DIO5        DIO4        DIO3    DIO2                DIO1        DIO0
                             ModeReady   CadDetected CadDone FhssChangeChannel   RxTimeout   RxDone
@@ -36,36 +53,31 @@ class Ping(LoRa):
 
     def on_rx_done(self):  # will not be called trough DIO (mapped to TxDone) 
         print("\n(RxDone) Packet Received")
+        
         #print(self.get_irq_flags()) 
         #lines = read_in()
         #print('num bytes payload', self.get_rx_nb_bytes())
+        
         payload = self.read_payload(nocheck=True)
         print ("payload :", payload)	
-        if payload == payload_pong: ## if message is PONG [P,o,n,g]/[80, 111, 110, 103] send PING [P,i,n,g]/[80, 105, 110, 103]
-            print "Pong received"
-            sleep(0.5)
-            self.set_dio_mapping([1,0,0,0,0,0]) #DIO0 is set to TxDone
-            self.set_mode(MODE.STDBY)
-            sleep(0.001)
-            self.clear_irq_flag_RxDone() # clear RX interrupt flag
-            
-            #clear_irq_flags has been depricated following issue # 1
-            #self.clear_irq_flags() 
-            sys.stdout.flush()
+        print ("Data from InAir4 received")
+        sleep(0.5)
+        self.set_dio_mapping([1,0,0,0,0,0]) #DIO0 is set to TxDone
+        self.set_mode(MODE.STDBY)
+        sleep(0.001)
+        self.clear_irq_flag_RxDone() # clear RX interrupt flag
         
-            sendData(self, payload_ping);
-
-        else: #back in cont. reception mode
-            #self.set_mode(MODE.SLEEP)  
-            print "Msg not recognised"
-            self.clear_irq_flag_RxDone()  # clear RX interrupt flag
-            self.reset_ptr_rx() 
-            self.set_mode(MODE.RXCONT) # go into cont. reception mode
+        #clear_irq_flags has been depricated following issue # 1
+        #self.clear_irq_flags() 
+        sys.stdout.flush()
+    
+        socketIO.emit('data', payload, on_data)
+        socketIO.wait_for_callbacks(seconds=0.008)
 
     def on_tx_done(self):
         print("\n(TxDone) Packet Send")
         #print(self.get_irq_flags())
-        print "Waiting for messages (Cont. Mode)"
+        print ("Waiting for messages (Cont. Mode)")
         self.set_dio_mapping([0] * 6) #DIO0 is set to RxDone
 
         #self.set_mode(MODE.SLEEP)  
@@ -98,34 +110,18 @@ class Ping(LoRa):
     
         
     def start(self):
-        global args
-        sys.stdout.write("\rstart\n")
-
-        self.set_mode(MODE.STDBY)
-        #self.clear_irq_flags()
-        sys.stdout.flush()
-        
-        sendData(self, payload_ping);
-        
-
+        self.reset_ptr_rx() # Put in cont. reception mode
+        self.set_mode(MODE.RXCONT)
+        print ("Waiting for messages (Cont. Mode)")
         while True:
             sleep(0)
             #after timer runs out restart
 
 
-lora = Ping(verbose=False)
-
+lora = SendData(verbose=False)
 lora.set_mode(MODE.STDBY)
 lora.set_pa_config(pa_select=0)
 
-def sendData(self, payload):
-    self.set_payload_length(len(payload))
-    base_addr = self.get_fifo_tx_base_addr()
-    self.set_fifo_addr_ptr(base_addr)
-
-    self.spi.xfer([REG.LORA.FIFO | 0x80] + payload)[1:]
-    self.set_mode(MODE.TX)  # send payload
-    print ("send payload", payload)
 
 print(lora)
 #assert(lora.get_agc_auto_on() == 1)

@@ -18,8 +18,8 @@ from SX127x.board_config import BOARD
 
 BOARD.setup()
 
-payload_pong = [0x50, 0x6F, 0x6E, 0x67, 0x67]
-payload_ping = [0x50, 0x69, 0x6E, 0x67]
+payload_pong = [0x50, 0x6F, 0x6E, 0x67, 0x67, 0x6F, 0x6E, 0x67, 0x67]
+payload_ping = [0x50, 0x69, 0x6E, 0x67, 0x67, 0x6F, 0x6E, 0x67, 0x67]
 
 class Pong(LoRa):
     def __init__(self, verbose=False):
@@ -37,7 +37,7 @@ class Pong(LoRa):
 	#print(self.get_irq_flags()) 
 	#print('num bytes payload', self.get_rx_nb_bytes())
 	payload = self.read_payload(nocheck=True)
-	print payload				
+	print ("payload :", payload)				
 	if payload == payload_ping: ## if message is PING [P,i,n,g]/[80, 105, 110, 103] send PONG [P,o,n,g]/[80, 111, 110, 103]
 		print "Ping received"
 		sleep(0.5) # configure parameter
@@ -65,14 +65,14 @@ class Pong(LoRa):
 		    
 
     def on_tx_done(self): # will not be called trough DIO (mapped to RxDone)
-	print("\n(TxDone) Packet Send")
-        #print(self.get_irq_flags())
-	print "Waiting for messages (Cont. Mode)"
-	
-	self.set_dio_mapping([0] * 6)  #DIO0 is set to RxDone
- 	sleep(0.001)
-	self.clear_irq_flag_TxDone() # clear TX interrupt flag
-	#self.set_mode(MODE.SLEEP)  
+        print("\n(TxDone) Packet Send")
+        print(self.get_irq_flags())
+        print "Waiting for messages (Cont. Mode)"
+        
+        self.set_dio_mapping([0] * 6)  #DIO0 is set to RxDone
+        sleep(0.001)
+        self.clear_irq_flag_TxDone() # clear TX interrupt flag
+        #self.set_mode(MODE.SLEEP)  
 
         self.reset_ptr_rx() 
         self.set_mode(MODE.RXCONT) #put in cont receiver mode

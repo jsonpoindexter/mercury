@@ -1,5 +1,8 @@
 var PythonShell = require('python-shell');
 var pyshell = new PythonShell('sendRecieveData.py',{args: ['freq --433']});
+
+// sends a message to the Python script via stdin 
+//pyshell.send('heeeeeeeeeeeeeeeeeeeeeeeeello');
  
 pyshell.on('message', function (message) {
   // received a message sent from the Python script (a simple "print" statement) 
