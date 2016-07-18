@@ -18,11 +18,6 @@ from SX127x.board_config import BOARD
 
 BOARD.setup()
 
-print("test")
-
-payload_pong = [0xFF]
-payload_ping = [0xFF]
-
 class Ping(LoRa):
 	#Read data from stdin
     def __init__(self, verbose=False):
@@ -41,26 +36,26 @@ class Ping(LoRa):
         #print('num bytes payload', self.get_rx_nb_bytes())
         payload = self.read_payload(nocheck=True)
         print ("payload :", payload)	
-        if payload == payload_pong: ## if message is PONG [P,o,n,g]/[80, 111, 110, 103] send PING [P,i,n,g]/[80, 105, 110, 103]
-            print "Pong received"
-            sleep(0.5)
-            self.set_dio_mapping([1,0,0,0,0,0]) #DIO0 is set to TxDone
-            self.set_mode(MODE.STDBY)
-            sleep(0.001)
-            self.clear_irq_flag_RxDone() # clear RX interrupt flag
-            
-            #clear_irq_flags has been depricated following issue # 1
-            #self.clear_irq_flags() 
-            sys.stdout.flush()
+        # if payload == payload_pong: ## if message is PONG [P,o,n,g]/[80, 111, 110, 103] send PING [P,i,n,g]/[80, 105, 110, 103]
+        print "Pong received"
+        sleep(0.5)
+        self.set_dio_mapping([1,0,0,0,0,0]) #DIO0 is set to TxDone
+        self.set_mode(MODE.STDBY)
+        sleep(0.001)
+        self.clear_irq_flag_RxDone() # clear RX interrupt flag
         
-            sendData(self, payload_ping);
+        #clear_irq_flags has been depricated following issue # 1
+        #self.clear_irq_flags() 
+        sys.stdout.flush()
+    
+        sendData(self, payload);
 
-        else: #back in cont. reception mode
-            #self.set_mode(MODE.SLEEP)  
-            print "Msg not recognised"
-            self.clear_irq_flag_RxDone()  # clear RX interrupt flag
-            self.reset_ptr_rx() 
-            self.set_mode(MODE.RXCONT) # go into cont. reception mode
+        # else: #back in cont. reception mode
+            # #self.set_mode(MODE.SLEEP)  
+            # print "Msg not recognised"
+            # self.clear_irq_flag_RxDone()  # clear RX interrupt flag
+            # self.reset_ptr_rx() 
+            # self.set_mode(MODE.RXCONT) # go into cont. reception mode
 
     def on_tx_done(self):
         print("\n(TxDone) Packet Send")
@@ -105,7 +100,7 @@ class Ping(LoRa):
         #self.clear_irq_flags()
         sys.stdout.flush()
         
-        sendData(self, payload_ping);
+        sendData(self, [0x0F,0x0F]);
         
 
         while True:
@@ -119,6 +114,7 @@ lora.set_mode(MODE.STDBY)
 lora.set_pa_config(pa_select=0)
 
 def sendData(self, payload):
+    print(self.get_payload_length())
     self.set_payload_length(len(payload))
     base_addr = self.get_fifo_tx_base_addr()
     self.set_fifo_addr_ptr(base_addr)
