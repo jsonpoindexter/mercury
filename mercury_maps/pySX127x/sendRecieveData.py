@@ -3,17 +3,19 @@
 from socketIO_client import SocketIO, LoggingNamespace
 
 def sendData(self, payload):
-    self.set_payload_length(len(payload))
+    print(self.get_payload_length())
+    #self.set_payload_length(len(payload))
     base_addr = self.get_fifo_tx_base_addr()
     self.set_fifo_addr_ptr(base_addr)
 
     self.spi.xfer([REG.LORA.FIFO | 0x80] + payload)[1:]
     self.set_mode(MODE.TX)  # send Payload
-    print("send payload:", payload)
+    print("send from inAir4 :", payload)
     
 def on_data(*data):
-    print('on_data', data)
-    sendData(lora, list(data))
+    print('data from socketIO: ', data)
+    #print('listdata from socketIO: ', list(data)[0])
+    sendData(lora,list(data[0]))
     
     
 socketIO = SocketIO('localhost', 3000, LoggingNamespace)
@@ -44,8 +46,8 @@ class SendData(LoRa):
     def __init__(self, verbose=False):
         super(SendData, self).__init__(verbose)
         self.set_mode(MODE.SLEEP)
-        self.set_dio_mapping([0] * 6) #DIO0 is set to RxDone
-        #self.set_payload_length(1)
+        self.set_dio_mapping([0,0,0,0,0,0]) #DIO0 is set to TxDone
+        self.set_payload_length(2)
 
         """ DIO Mapping     DIO5        DIO4        DIO3    DIO2                DIO1        DIO0
                             ModeReady   CadDetected CadDone FhssChangeChannel   RxTimeout   RxDone
@@ -59,8 +61,7 @@ class SendData(LoRa):
         #print('num bytes payload', self.get_rx_nb_bytes())
         
         payload = self.read_payload(nocheck=True)
-        print ("payload :", payload)	
-        print ("Data from InAir4 received")
+        print ("data recieved InAir4: ", payload)	
         sleep(0.5)
         self.set_dio_mapping([1,0,0,0,0,0]) #DIO0 is set to TxDone
         self.set_mode(MODE.STDBY)
@@ -71,8 +72,8 @@ class SendData(LoRa):
         #self.clear_irq_flags() 
         sys.stdout.flush()
     
-        socketIO.emit('data', payload, on_data)
-        socketIO.wait_for_callbacks(seconds=0.008)
+        socketIO.emit('data', payload)
+        #socketIO.wait_for_callbacks(seconds=0.008)
 
     def on_tx_done(self):
         print("\n(TxDone) Packet Send")
@@ -115,6 +116,7 @@ class SendData(LoRa):
         print ("Waiting for messages (Cont. Mode)")
         while True:
             sleep(0)
+            socketIO.wait(.01)
             #after timer runs out restart
 
 

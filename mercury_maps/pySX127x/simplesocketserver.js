@@ -9,13 +9,16 @@ var gpsdata = {
         'lat':123423425,
         'lon':123423455
  };
+ 
+payload = 0x0F
 io.on('connection', function(socket){
   console.log('a user connected');
-  io.emit('data',0xFF);
+  console.log('sending data:',payload);
+  //io.emit('data',payload);
   socket.on('data', function(data) {
         console.log('recieved data:',data);
         console.log('sending data:',data);
-        io.emit('data',0xFF);
+        io.emit('data',data);
     });
 });
 

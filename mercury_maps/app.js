@@ -73,7 +73,7 @@ daemon.start(function() {
 		//only collect data every GpsdInterval
 		if((((new Date()).getTime() - previousGpsdTime.getTime()) / 1000) > GpsdInterval){
 			previousGpsdTime = new Date();
-			//console.log(tpv);
+			console.log(tpv);
 			var statement = db.prepare("INSERT INTO GpsLog VALUES (?, ?, ?, ?, ?)");
 			// Insert values into prepared statement
 			var lat = tpv.lat;
