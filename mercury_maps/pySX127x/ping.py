@@ -23,7 +23,8 @@ class Ping(LoRa):
     def __init__(self, verbose=False):
         super(Ping, self).__init__(verbose)
         self.set_mode(MODE.SLEEP)
-        self.set_dio_mapping([1,0,0,0,0,0]) #DIO0 is set to TxDone
+        self.set_dio_mapping([0,0,0,0,0,0]) #DIO0 is set to TxDone
+        self.set_payload_length(9)
 
         """ DIO Mapping     DIO5        DIO4        DIO3    DIO2                DIO1        DIO0
                             ModeReady   CadDetected CadDone FhssChangeChannel   RxTimeout   RxDone
@@ -35,6 +36,8 @@ class Ping(LoRa):
         #lines = read_in()
         #print('num bytes payload', self.get_rx_nb_bytes())
         payload = self.read_payload(nocheck=True)
+        self.set_payload_length(len(payload))
+        print(self.get_payload_length())
         print ("payload :", payload)	
         # if payload == payload_pong: ## if message is PONG [P,o,n,g]/[80, 111, 110, 103] send PING [P,i,n,g]/[80, 105, 110, 103]
         print "Pong received"
@@ -93,16 +96,9 @@ class Ping(LoRa):
     
         
     def start(self):
-        global args
-        sys.stdout.write("\rstart\n")
-
-        self.set_mode(MODE.STDBY)
-        #self.clear_irq_flags()
-        sys.stdout.flush()
-        
-        sendData(self, [0x0F,0x0F]);
-        
-
+        self.reset_ptr_rx() # Put in cont. reception mode
+        self.set_mode(MODE.RXCONT)
+        print ("Waiting for messages (Cont. Mode)")
         while True:
             sleep(0)
             #after timer runs out restart

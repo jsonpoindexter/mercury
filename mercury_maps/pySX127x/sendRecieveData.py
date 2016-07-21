@@ -4,7 +4,8 @@ from socketIO_client import SocketIO, LoggingNamespace
 
 def sendData(self, payload):
     print(self.get_payload_length())
-    #self.set_payload_length(len(payload))
+    self.set_payload_length(len(payload))
+    print(self.get_payload_length())
     base_addr = self.get_fifo_tx_base_addr()
     self.set_fifo_addr_ptr(base_addr)
 
@@ -19,7 +20,7 @@ def on_data(*data):
     
     
 socketIO = SocketIO('localhost', 3000, LoggingNamespace)
-socketIO.on('data', on_data)
+socketIO.on('data_sx127x', on_data)
 
 """ Ping Class """
 
@@ -46,8 +47,7 @@ class SendData(LoRa):
     def __init__(self, verbose=False):
         super(SendData, self).__init__(verbose)
         self.set_mode(MODE.SLEEP)
-        self.set_dio_mapping([0,0,0,0,0,0]) #DIO0 is set to TxDone
-        self.set_payload_length(2)
+        self.set_dio_mapping([1,0,0,0,0,0]) #DIO0 is set to TxDone
 
         """ DIO Mapping     DIO5        DIO4        DIO3    DIO2                DIO1        DIO0
                             ModeReady   CadDetected CadDone FhssChangeChannel   RxTimeout   RxDone
@@ -72,7 +72,7 @@ class SendData(LoRa):
         #self.clear_irq_flags() 
         sys.stdout.flush()
     
-        socketIO.emit('data', payload)
+        socketIO.emit('data_sx127x', payload)
         #socketIO.wait_for_callbacks(seconds=0.008)
 
     def on_tx_done(self):

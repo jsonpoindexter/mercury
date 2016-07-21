@@ -13,29 +13,11 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         var socket = io();
-        socket.on('data', function(data){
-        console.log(data);
-        if(bmOffset){
-            var lat = data.lat + latOffset
-            var lon = data.lon + lonOffset
-        }
-        else{
-            var lat = data.lat
-            var lon = data.lon
-        }
-        myLayer.on('layeradd', function(e) {
-            var marker = e.layer,
-                feature = marker.feature;
-                marker.setLatLng([lat,lon])
-                marker.setIcon(L.icon(feature.properties.icon));
-        });
-        myLayer.setGeoJSON(geojson);
-        mapOne.setView([lat,lon]);
-        });
+        
     </script>
 </head>
 <body>
-	<div style="position:absolute; top:0; bottom:0; width:100%;height:100%; ">
+	<div style="position:absolute; top:0; bottom:0; width:480px;height:320px; ">
 		<div id='map-one' class='map' >
 		</div>
 		<div id="controls" style="float: bottom;width:100%; height: 100%;">
@@ -48,6 +30,27 @@
 		</div> 
 	</div>
 	<script type="text/javascript">
+        var globalData;
+        socket.on('data', function(data){
+            console.log(data);
+            globalData = data;
+            if(bmOffset){
+                var lat = data.lat + latOffset
+                var lon = data.lon + lonOffset
+            }
+            else{
+                var lat = data.lat
+                var lon = data.lon
+            }
+            myLayer.on('layeradd', function(e) {
+                var marker = e.layer,
+                    feature = marker.feature;
+                    marker.setLatLng([lat,lon])
+                    marker.setIcon(L.icon(feature.properties.icon));
+            });
+            myLayer.setGeoJSON(geojson);
+            mapOne.setView([lat,lon]);
+        });
 		//move your current GPS cordinates to the center of BRC 2015
 		var bmOffset = false;
 		document.getElementById("set_bmOffset").addEventListener("click", set_bmOffset);
@@ -56,10 +59,20 @@
 		var lonOffset = 0;
 		function set_bmOffset() {	
 			bmOffset = true;
-			latOffset =  40.78640000000001 - data.lat;
-			lonOffset =  -119.2065 - data.lon;
+			latOffset =  40.78640000000001 - globalData.lat;
+			lonOffset =  -119.2065 - globalData.lon;
 			console.log(latOffset);
 			console.log(lonOffset);
+            lat = globalData.lat + latOffset
+            lon = globalData.lon + lonOffset
+            myLayer.on('layeradd', function(e) {
+            var marker = e.layer,
+                feature = marker.feature;
+                marker.setLatLng([lat,lon])
+                marker.setIcon(L.icon(feature.properties.icon));
+            });
+            myLayer.setGeoJSON(geojson);
+            mapOne.setView([lat,lon]);
 		}
 		function reset_location() {	
 			bmOffset = false;
@@ -72,8 +85,11 @@
 		
 		//create map
 		L.mapbox.accessToken = 'pk.eyJ1IjoibXVmZmluc2F1cnVzcmV4IiwiYSI6ImNpbnVuaDFvcjExeHJ1Mm0zbnczZXFtNWMifQ.EvWoIv6R42b2rQdPBhe3TA';
-		var mapOne = L.mapbox.map('map-one', 'mapbox.streets');
+		var mapOne = L.mapbox.map(
+            'map-one', 'mapbox.streets'
+        );
 		mapOne.setView([0,0], 13);
+        
 		var myLayer = L.mapbox.featureLayer().addTo(mapOne);
 		mapOne.scrollWheelZoom.disable();
 		//create marker properties
@@ -97,35 +113,7 @@
 		var featureLayer = L.mapbox.featureLayer()
 			.loadURL('/bm15/streets.json')
 			.addTo(mapOne); 
-        //repeadly request data from web server
-        /*
-		function getData() {
-			$.getJSON('./GpsData.json', function (data) {
-				globaldata = data;
-				console.log(data);
-				if(bmOffset){
-					var lat = data.lat + latOffset
-					var lon = data.lon + lonOffset
-				}
-				else{
-					var lat = data.lat
-					var lon = data.lon
-				}
-				myLayer.on('layeradd', function(e) {
-					var marker = e.layer,
-						feature = marker.feature;
-						marker.setLatLng([lat,lon])
-						marker.setIcon(L.icon(feature.properties.icon));
-				});
-				myLayer.setGeoJSON(geojson);
-				mapOne.setView([lat,lon]);
-				
-			});
-			setTimeout(getData, 1000);
-		}
-		getData();
-        */
-        
+
 	</script>
 </body>
 </html>

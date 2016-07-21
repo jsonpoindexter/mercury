@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8' />
+    <title></title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.21.0/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.21.0/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body { margin:0; padding:0; }
+        #map { position:absolute; top:0; bottom:0; width:480px;height:320px;}
+    </style>
+</head>
+<body>
+
+<div id='map'></div>
+
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoibXVmZmluc2F1cnVzcmV4IiwiYSI6ImNpbnVuaDFvcjExeHJ1Mm0zbnczZXFtNWMifQ.EvWoIv6R42b2rQdPBhe3TA';
+    var geojson = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "properties": {
+                    "name": "circle",
+                    "iconUrl": "https://www.mapbox.com/mapbox-gl-js/assets/circle.png",
+                    "iconSize": [25, 25]
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        0,
+                        0
+                    ]
+                }
+            }
+           /*
+            {
+                "type": "Feature",
+                "properties": {
+                    "name": "square",
+                    "iconUrl": "https://www.mapbox.com/mapbox-gl-js/assets/square.png",
+                    "iconSize": [25, 25]
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        -61.2158203125,
+                        -15.97189158092897
+                    ]
+                }
+            },
+            {
+                "type": "Feature",
+                "properties": {
+                    "name": "triangle",
+                    "iconUrl": "https://www.mapbox.com/mapbox-gl-js/assets/triangle.png",
+                    "iconSize": [25, 25]
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [
+                        -63.29223632812499,
+                        -18.28151823530889
+                    ]
+                }
+            }*/
+        ]
+    };
+    var map = new mapboxgl.Map({
+        container: 'map', // container id
+        style: 'mapbox://styles/mapbox/streets-v9', //stylesheet location
+        center: [-119.2065,40.78640000000001], // starting position
+        zoom: 12.5, // starting zoom
+        bearing: 45, // bearing in degrees
+    });
+    // Add zoom and rotation controls to the map.
+    map.addControl(new mapboxgl.Navigation());
+    
+    // add markers to map
+    for (var i = 0; i < geojson.features.length; i++) {
+        var feature = geojson.features[i];
+
+        // create an img element for the marker
+        var img = document.createElement('img');
+        img.src = feature.properties.iconUrl;
+        img.style.width = feature.properties.iconSize[0] + "px";
+        img.style.height = feature.properties.iconSize[1] + "px";
+
+        // add marker to map
+        new mapboxgl.Marker(img)
+            .setLngLat(feature.geometry.coordinates)
+            .addTo(map);
+    }
+    //overlay BM streets
+    map.on('load', function () {
+        map.addSource("bm_streets", {
+            "type": "geojson",
+            "data": "./bm15/streets.json" 
+        });       
+        map.addLayer({
+            "id": "bm_streets",
+            "type": "line",
+            "source": "bm_streets",
+            "layout": {
+                "line-join": "round",
+                "line-cap": "round"
+            },
+            "paint": {
+                "line-color": "#888",
+                "line-width": 1
+            }
+        });         
+    });
+</script>
+
+</body>
+</html>
