@@ -155,7 +155,7 @@ class REG:
         DETECT_OPTIMIZE    = 0X31
         INVERT_IQ          = 0x33
         DETECTION_THRESH   = 0X37
-        SYNC_WORD          = 0X39
+        SYNC_WORD          = 0X69
         DIO_MAPPING_1      = 0x40
         DIO_MAPPING_2      = 0x41
         VERSION            = 0x42

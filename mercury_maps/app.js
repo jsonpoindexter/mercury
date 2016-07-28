@@ -1,8 +1,8 @@
 
 //Device ID used in LoRa packets
-var devID = hexToBytes(decimalToHexString(process.argv[2]));
-devID = devID[0]
-console.log("devID: ", devID);
+var devId = hexToBytes(decimalToHexString(process.argv[2]));
+devId = devId[0]
+console.log("devId: ", devId);
 
 
 /*******Lora Payload Functions*******/
@@ -59,6 +59,25 @@ var db = new TransactionDatabase(
     new sqlite3.Database("/home/pi/projects/node/mapboxinexpress_001/mercery.db", sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE)
 );
 
+// Start socket server python scripts
+// executes `pkill` - make sure socketserver isnt already running
+child = exec("pkill -f sendRecieveData.py");
+
+var PythonShell = require('python-shell');
+var pyshell = new PythonShell('./pySX127x/sendRecieveData.py',{args: ['freq --433']},function (err, results) {
+  if (err) throw err;
+  // results is an array consisting of messages collected during execution
+  console.log('results: %j', results);
+});
+pyshell.on('message', function (message) {
+  // received a message sent from the Python script (a simple "print" statement)
+  console.log(message);
+});
+// end the input stream and allow the process to exit
+pyshell.end(function (err) {
+  if (err) throw err;
+  console.log('finished');
+});
 //start GPSD
 // executes `pkill` - make sure socketserver isnt already running
 child = exec("pkill -f gpsd");
@@ -85,7 +104,7 @@ daemon.start(function() {
 		//only collect data every GpsdInterval
         //console.log(tpv);
         //tpv.mode should be 3 since 3 means lot/lat
-		if((((new Date()).getTime() - previousGpsdTime.getTime()) / 1000) > GpsdInterval && tpv.mode > 2){
+		if(((new Date().getTime() - previousGpsdTime.getTime()) / 1000) > GpsdInterval && tpv.time && tpv.lat && tpv.lon && tpv.alt && tpv.speed){
 			
             previousGpsdTime = new Date();
 			var statement = db.prepare("INSERT INTO GpsLog VALUES (?, ?, ?, ?, ?)");
@@ -99,35 +118,37 @@ daemon.start(function() {
             //init payload to send
             var payload = new Array()
             //Change Lat / Lon to a non decimal number
-            lon = Math.round(tpv.lon * 10000000)
             lat = Math.round(tpv.lat * 10000000)
+            lon = Math.round(tpv.lon * 10000000)
             //convert decimal to hex string
-            lonHexStr = decimalToHexString(lon)
             latHexStr = decimalToHexString(lat)
-
+            lonHexStr = decimalToHexString(lon)
+            
             //convert hex string to byte array
             //Convert signed hex lon to int / lon value
-            lonByte =  hexToBytes(lonHexStr)
             latByte =  hexToBytes(latHexStr)
+            lonByte =  hexToBytes(lonHexStr)
 
             //put together payload
-            payload[0] = devID //add device id to the first bye
+            payload[0] = devId //add device id to the first bye
             //fill out longitude in payload
-            for(var i = 0; i < lonByte.length; i++){
-               payload[i + 1]  = lonByte[i]
+            for(var i = 0; i < latByte.length; i++){
+               payload[i + 1]  = latByte[i]
             }
             //fill out latitude in payload
-            for(var i = 0; i < latByte.length; i++){
-               payload[i + 1 + lonByte.length]  = latByte[i]
+            for(var i = 0; i < lonByte.length; i++){
+               payload[i + 1 + latByte.length]  = lonByte[i]
             }
             console.log('sending data_sx127x:',payload);
 			io.emit('data_sx127x', payload);
             //data for webclient
             var data = {
+                'devId': devId,
                 'lat':tpv.lat,
-                'lon':tpv.lon
+                'lon':tpv.lon,
+                'time':new Date()
             };
-            io.emit('data', data);
+            io.emit('data_web', data);
 		}
     });
     listener.connect(function() {
@@ -137,7 +158,8 @@ daemon.start(function() {
 
 
 // create an express app
-var app = require('express')();
+var express = require('express'),
+    app = express()
     morgan = require('morgan'),
 	bodyParser = require('body-parser'),
     port = process.env.PORT || 3000,
@@ -154,25 +176,7 @@ app.use(bodyParser.json());
 // serve files in the specified path
 // This middleware will only call the next middleware if
 // path doesn't match the static directory
-//app.use(express.static(publicDir));
-app.get('/index.html',function(req,res){
-  res.sendFile(publicDir + '/index.html');
-});
-app.get('/index2.html',function(req,res){
-  res.sendFile(publicDir + '/index2.html');
-});
-app.get('/markers/jpoindexter.jpg',function(req,res){
-  res.sendFile(publicDir + '/markers/jpoindexter.jpg');
-});
-app.get('/bm15/streets.json',function(req,res){
-  res.sendFile(publicDir + '/bm15/streets.json');
-});
-app.get('/bm15/outline.json',function(req,res){
-  res.sendFile(publicDir + '/bm15/outline.json');
-});
-app.get('/bm15/fence.json',function(req,res){
-  res.sendFile(publicDir + '/bm15/fence.json');
-});
+app.use(express.static(publicDir));
 
 function lastGpsCordinate(callback){
 	db.each("select time,lon,lat from gpslog order by time desc limit 1;", function (err, data) {
@@ -196,14 +200,25 @@ app.get('/GpsData.json', function(req, res) {
 //socket stuff
 io.on('connection', function(socket){
     console.log('a user connected to socketIO');
+    //send the device Id to web client
+    io.emit('data_wclient_init', devId);
     socket.on('disconnect', function(){
         console.log('user disconnected');
     });
     socket.on('data_sx127x', function(data) {
         console.log('recieved data_sx127x:',data);
         console.log('deviceID: ',data[0]);
-        console.log('lon :', hexToInt(bytesToHex(data.slice(1,5))) / 10000000)
-        console.log('lat :', hexToInt(bytesToHex(data.slice(5,9))) / 10000000)
+        console.log('lat :', hexToInt(bytesToHex(data.slice(1,5))) / 10000000)
+        console.log('lon :', hexToInt(bytesToHex(data.slice(5,9))) / 10000000)
+        
+        //data for webclient
+        var data = {
+            'devId' : data[0],
+            'lat': (hexToInt(bytesToHex(data.slice(1,5))) / 10000000),
+            'lon': (hexToInt(bytesToHex(data.slice(5,9))) / 10000000),
+            'time': new Date()
+        };
+        io.emit('data_web', data);
     });
 });
 
@@ -211,14 +226,5 @@ http.listen(port);
 
 console.log('server started on port %s', port);
 
-// Start socket server python scripts
-// executes `pkill` - make sure socketserver isnt already running
-child = exec("pkill -f sendRecieveData.py");
 
-var PythonShell = require('python-shell');
-PythonShell.run('./pySX127x/sendRecieveData.py',{args: ['freq --433']},function (err, results) {
-  if (err) throw err;
-  // results is an array consisting of messages collected during execution 
-  console.log('results: %j', results);
-});
 

@@ -1,27 +1,5 @@
 ﻿#!/usr/bin/env python2.7
 #Set up socket client
-from socketIO_client import SocketIO, LoggingNamespace
-
-def sendData(self, payload):
-    print(self.get_payload_length())
-    self.set_payload_length(len(payload))
-    print(self.get_payload_length())
-    base_addr = self.get_fifo_tx_base_addr()
-    self.set_fifo_addr_ptr(base_addr)
-
-    self.spi.xfer([REG.LORA.FIFO | 0x80] + payload)[1:]
-    self.set_mode(MODE.TX)  # send Payload
-    print("send from inAir4 :", payload)
-    
-def on_data(*data):
-    print('data from socketIO: ', data)
-    #print('listdata from socketIO: ', list(data)[0])
-    sendData(lora,list(data[0]))
-    
-    
-socketIO = SocketIO('localhost', 3000, LoggingNamespace)
-socketIO.on('data_sx127x', on_data)
-
 """ Ping Class """
 
 """ Thomas Verbeke - thomas.verbeke@vub.ac.be
@@ -47,7 +25,7 @@ class SendData(LoRa):
     def __init__(self, verbose=False):
         super(SendData, self).__init__(verbose)
         self.set_mode(MODE.SLEEP)
-        self.set_dio_mapping([1,0,0,0,0,0]) #DIO0 is set to TxDone
+        self.set_dio_mapping([0,0,0,0,0,0]) #DIO0 is set to RxDone
 
         """ DIO Mapping     DIO5        DIO4        DIO3    DIO2                DIO1        DIO0
                             ModeReady   CadDetected CadDone FhssChangeChannel   RxTimeout   RxDone
@@ -63,25 +41,24 @@ class SendData(LoRa):
         payload = self.read_payload(nocheck=True)
         print ("data recieved InAir4: ", payload)	
         sleep(0.5)
-        self.set_dio_mapping([1,0,0,0,0,0]) #DIO0 is set to TxDone
+        self.set_dio_mapping([0,0,0,0,0,0]) #DIO0 is set to RxDone
         self.set_mode(MODE.STDBY)
         sleep(0.001)
         self.clear_irq_flag_RxDone() # clear RX interrupt flag
-        
+        self.set_mode(MODE.RXCONT)
         #clear_irq_flags has been depricated following issue # 1
         #self.clear_irq_flags() 
         sys.stdout.flush()
     
         socketIO.emit('data_sx127x', payload)
         #socketIO.wait_for_callbacks(seconds=0.008)
+        
 
     def on_tx_done(self):
         print("\n(TxDone) Packet Send")
         #print(self.get_irq_flags())
         print ("Waiting for messages (Cont. Mode)")
         self.set_dio_mapping([0] * 6) #DIO0 is set to RxDone
-
-        #self.set_mode(MODE.SLEEP)  
 
         sleep(0.001)
         self.clear_irq_flag_TxDone() # clear TX interrupt flag
@@ -115,8 +92,9 @@ class SendData(LoRa):
         self.set_mode(MODE.RXCONT)
         print ("Waiting for messages (Cont. Mode)")
         while True:
-            sleep(0)
             socketIO.wait(.01)
+            sleep(.01)
+            sys.stdout.flush()
             #after timer runs out restart
 
 
@@ -130,6 +108,31 @@ print(lora)
 
 #try: input("Press enter to start...")
 #except: pass
+
+from socketIO_client import SocketIO, LoggingNamespace
+
+def sendData(self, payload):
+
+    self.set_dio_mapping([1,0,0,0,0,0]) #DIO0 is set to TxDone
+    self.set_mode(MODE.STDBY)
+    sleep(0.001)
+    
+    self.set_payload_length(len(payload))
+    base_addr = self.get_fifo_tx_base_addr()
+    self.set_fifo_addr_ptr(base_addr)
+
+    self.spi.xfer([REG.LORA.FIFO | 0x80] + payload)[1:]
+    self.set_mode(MODE.TX)  # send Payload
+    print("send from inAir4 :", payload)
+    
+def on_data(*data):
+    print('data from socketIO: ', data)
+    #print('listdata from socketIO: ', list(data)[0])
+    sendData(lora,list(data[0]))
+    
+    
+socketIO = SocketIO('localhost', 3000, LoggingNamespace)
+socketIO.on('data_sx127x', on_data)
 
 try:
     lora.start()
