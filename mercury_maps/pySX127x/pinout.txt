@@ -1,0 +1,13 @@
+inAir4 DIO0 >> GPIO 13(pin 33)
+inAir4 DIO1 >> GPIO 23(pin 16) 
+inAir4 DIO2 >> GPIO 5(pin 29) 
+inAir4 DIO3 >> GPIO 6(pin 31) 
+inAir4 Reset>> NA
+LED >> GPIO 18(pin 12)
+inAir4 VS >> GPIO 04(pin 07)
+inAir4 3V3 >> 3.3v(pin 01)
+inAir4 V0 >> Ground(pin 09)
+inAir4 CK >> GPIO 11 (pin 23)
+inAir4 SO >> GPIO 09 (pin 21)
+inAir4 SI >> GPIO 10 (pin 19)
+inAir4 CS >> GPIO 07 (pin 26)

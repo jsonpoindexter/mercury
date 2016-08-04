@@ -45,6 +45,111 @@ function bytesToHex(bytes) {
     return hex.join("");
 }
 /*******END-Lora Payload Functions*******/
+//Create devie object
+function device(id, lat, lon, time) {
+    this.id = id;
+    this.lat = lat;
+    this.lon = lon;
+    this.time = time;
+};
+
+//compare local table to recieved table and return updated table
+var localTable = [];
+var recievedTable = [];
+function UpdateLocalTable( recievedTable, localTable){
+	var newDevices = []; // will hold new found devices to be added to local table
+	for(var i = 0; i < recievedTable.length; i++){
+		var newDevice = true;
+		for(var j = 0; j < localTable.length; j++){
+			if(recievedTable[i].id == localTable[j].id) {
+				newDevice = false;
+				if(recievedTable[i].time > localTable[j].time){
+					console.log("update local table");
+					localTable[j] = recievedTable[i];
+				}
+			}
+		}
+		if(newDevice){
+			newDevices.push(recievedTable[i])
+		}
+	}
+	for(var i = 0; i < newDevices.length; i++){
+		console.log("adding new device", newDevices[i]);
+		localTable.push(newDevices[i]);
+	}
+	return localTable;
+};
+
+
+// create an express app
+var express = require('express'),
+    app = express()
+    morgan = require('morgan'),
+	bodyParser = require('body-parser'),
+    port = process.env.PORT || 3000,
+    publicDir = require('path').join(__dirname, '/public'),
+    //socket server to web client
+    http = require('http').Server(app),
+    io = require('socket.io')(http);
+
+// add logging middleware
+app.use(morgan('dev'));
+// parsing get
+app.use(bodyParser.json());
+// add the express.static middleware to the app to
+// serve files in the specified path
+// This middleware will only call the next middleware if
+// path doesn't match the static directory
+app.use(express.static(publicDir));
+
+function lastGpsCordinate(callback){
+	db.each("select time,lon,lat from gpslog order by time desc limit 1;", function (err, data) {
+		if (err) {
+			response.writeHead(500, { "Content-type": "text/html" });
+			response.end(err + "\n");
+			console.log('Error serving querying database. ' + err);
+			return;
+		}
+		callback(data);
+	});
+}
+
+app.get('/GpsData.json', function(req, res) {
+	lastGpsCordinate(function (data) {
+	  console.log(data);
+	  res.send(data);         // automatic -> application/json
+	});
+});
+
+//socket stuff
+io.on('connection', function(socket){
+    console.log('a user connected to socketIO');
+    //send the device Id to web client
+    io.emit('data_wclient_init', devId);
+    socket.on('disconnect', function(){
+        console.log('user disconnected');
+    });
+    //handle data recieved from other LoRa devices
+    socket.on('data_sx127x', function(data) {
+        console.log('recieved data_sx127x:',data);
+        console.log('deviceID: ',data[0]);
+        console.log('lat :', hexToInt(bytesToHex(data.slice(1,5))) / 10000000)
+        console.log('lon :', hexToInt(bytesToHex(data.slice(5,9))) / 10000000)
+        
+        //data for webclient
+        var data = {
+            'devId' : data[0],
+            'lat': (hexToInt(bytesToHex(data.slice(1,5))) / 10000000),
+            'lon': (hexToInt(bytesToHex(data.slice(5,9))) / 10000000),
+            'time': new Date()
+        };
+        io.emit('data_web', data);
+    });
+});
+
+http.listen(port);
+
+console.log('server started on port %s', port);
 
 // http://nodejs.org/api.html#_child_processes
 var sys = require('sys')
@@ -56,7 +161,7 @@ var sqlite3 = require('sqlite3');
 TransactionDatabase = require("sqlite3-transactions").TransactionDatabase;
 // Setup database connection for logging
 var db = new TransactionDatabase(
-    new sqlite3.Database("/home/pi/projects/node/mapboxinexpress_001/mercery.db", sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE)
+    new sqlite3.Database("/projects/mercury/mercury_maps/mercery.db", sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE)
 );
 
 // Start socket server python scripts
@@ -105,7 +210,6 @@ daemon.start(function() {
         //console.log(tpv);
         //tpv.mode should be 3 since 3 means lot/lat
 		if(((new Date().getTime() - previousGpsdTime.getTime()) / 1000) > GpsdInterval && tpv.time && tpv.lat && tpv.lon && tpv.alt && tpv.speed){
-			
             previousGpsdTime = new Date();
 			var statement = db.prepare("INSERT INTO GpsLog VALUES (?, ?, ?, ?, ?)");
 			// Insert values into prepared statement
@@ -157,74 +261,6 @@ daemon.start(function() {
 });
 
 
-// create an express app
-var express = require('express'),
-    app = express()
-    morgan = require('morgan'),
-	bodyParser = require('body-parser'),
-    port = process.env.PORT || 3000,
-    publicDir = require('path').join(__dirname, '/public'),
-    //socket server to web client
-    http = require('http').Server(app),
-    io = require('socket.io')(http);
-
-// add logging middleware
-app.use(morgan('dev'));
-// parsing get
-app.use(bodyParser.json());
-// add the express.static middleware to the app to
-// serve files in the specified path
-// This middleware will only call the next middleware if
-// path doesn't match the static directory
-app.use(express.static(publicDir));
-
-function lastGpsCordinate(callback){
-	db.each("select time,lon,lat from gpslog order by time desc limit 1;", function (err, data) {
-		if (err) {
-			response.writeHead(500, { "Content-type": "text/html" });
-			response.end(err + "\n");
-			console.log('Error serving querying database. ' + err);
-			return;
-		}
-		callback(data);
-	});
-}
-
-app.get('/GpsData.json', function(req, res) {
-	lastGpsCordinate(function (data) {
-	  console.log(data);
-	  res.send(data);         // automatic -> application/json
-	});
-});
-
-//socket stuff
-io.on('connection', function(socket){
-    console.log('a user connected to socketIO');
-    //send the device Id to web client
-    io.emit('data_wclient_init', devId);
-    socket.on('disconnect', function(){
-        console.log('user disconnected');
-    });
-    socket.on('data_sx127x', function(data) {
-        console.log('recieved data_sx127x:',data);
-        console.log('deviceID: ',data[0]);
-        console.log('lat :', hexToInt(bytesToHex(data.slice(1,5))) / 10000000)
-        console.log('lon :', hexToInt(bytesToHex(data.slice(5,9))) / 10000000)
-        
-        //data for webclient
-        var data = {
-            'devId' : data[0],
-            'lat': (hexToInt(bytesToHex(data.slice(1,5))) / 10000000),
-            'lon': (hexToInt(bytesToHex(data.slice(5,9))) / 10000000),
-            'time': new Date()
-        };
-        io.emit('data_web', data);
-    });
-});
-
-http.listen(port);
-
-console.log('server started on port %s', port);
 
 
 

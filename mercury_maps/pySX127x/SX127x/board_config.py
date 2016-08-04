@@ -31,12 +31,15 @@ class BOARD:
         This is the Raspberry Pi board with one LED and a modtronix inAir9B
     """
     # Note that the BCOM numbering for the GPIOs is used.
-    DIO0 = 22   # RaspPi GPIO 22
-    DIO1 = 23   # RaspPi GPIO 23
-    DIO2 = 24   # RaspPi GPIO 24
-    DIO3 = 25   # RaspPi GPIO 25
-    LED  = 18   # RaspPi GPIO 18 connects to the LED on the proto shield
-    SWITCH = 4  # RaspPi GPIO 4 connects to a switch
+    #OLD DIO0 = 22   # RaspPi GPIO 22 PIN 15
+    DIO0 = 13   # RaspPi GPIO 13 PIN 33
+    DIO1 = 23   # RaspPi GPIO 23 PIN 16
+    #OLD DIO2 = 24   # RaspPi GPIO 24 PIN 18
+    DIO2 = 5   # RaspPi GPIO 5 PIN 29
+    #OLD DIO3 = 25   # RaspPi GPIO 25 PIN 22
+    DIO3 = 6   # RaspPi GPIO 6 PIN 31
+    LED  = 18   # RaspPi GPIO 18 connects to the LED on the proto shield PIN 12
+    SWITCH = 4  # RaspPi GPIO 4 connects to a switch PIN 7
 
     # The spi object is kept here
     spi = None
@@ -71,7 +74,7 @@ class BOARD:
         :rtype: SpiDev
         """
         BOARD.spi = spidev.SpiDev()
-        BOARD.spi.open(0, 0)
+        BOARD.spi.open(0, 1)
         return BOARD.spi
 
     @staticmethod
