@@ -46,6 +46,76 @@ function bytesToHex(bytes) {
 }
 /*******END-Lora Payload Functions*******/
 
+
+// create an express app
+var express = require('express'),
+    app = express()
+    morgan = require('morgan'),
+	bodyParser = require('body-parser'),
+    port = process.env.PORT || 3000,
+    publicDir = require('path').join(__dirname, '/public'),
+    //socket server to web client
+    http = require('http').Server(app),
+    io = require('socket.io')(http);
+
+// add logging middleware
+app.use(morgan('dev'));
+// parsing get
+app.use(bodyParser.json());
+// add the express.static middleware to the app to
+// serve files in the specified path
+// This middleware will only call the next middleware if
+// path doesn't match the static directory
+app.use(express.static(publicDir));
+
+function lastGpsCordinate(callback){
+	db.each("select time,lon,lat from gpslog order by time desc limit 1;", function (err, data) {
+		if (err) {
+			response.writeHead(500, { "Content-type": "text/html" });
+			response.end(err + "\n");
+			console.log('Error serving querying database. ' + err);
+			return;
+		}
+		callback(data);
+	});
+}
+
+app.get('/GpsData.json', function(req, res) {
+	lastGpsCordinate(function (data) {
+	  console.log(data);
+	  res.send(data);         // automatic -> application/json
+	});
+});
+
+//socket stuff
+io.on('connection', function(socket){
+    console.log('a user connected to socketIO');
+    //send the device Id to web client
+    io.emit('data_wclient_init', devId);
+    socket.on('disconnect', function(){
+        console.log('user disconnected');
+    });
+    socket.on('data_sx127x', function(data) {
+        console.log('recieved data_sx127x:',data);
+        console.log('deviceID: ',data[0]);
+        console.log('lat :', hexToInt(bytesToHex(data.slice(1,5))) / 10000000)
+        console.log('lon :', hexToInt(bytesToHex(data.slice(5,9))) / 10000000)
+        
+        //data for webclient
+        var data = {
+            'devId' : data[0],
+            'lat': (hexToInt(bytesToHex(data.slice(1,5))) / 10000000),
+            'lon': (hexToInt(bytesToHex(data.slice(5,9))) / 10000000),
+            'time': new Date()
+        };
+        io.emit('data_web', data);
+    });
+});
+
+http.listen(port);
+
+console.log('server started on port %s', port);
+
 // http://nodejs.org/api.html#_child_processes
 var sys = require('sys')
 var exec = require('child_process').exec;
@@ -56,7 +126,7 @@ var sqlite3 = require('sqlite3');
 TransactionDatabase = require("sqlite3-transactions").TransactionDatabase;
 // Setup database connection for logging
 var db = new TransactionDatabase(
-    new sqlite3.Database("/home/pi/projects/node/mapboxinexpress_001/mercery.db", sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE)
+    new sqlite3.Database("/projects/mercury/mercury_maps/mercery.db", sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE)
 );
 
 // Start socket server python scripts
@@ -155,76 +225,3 @@ daemon.start(function() {
         listener.watch();
     });
 });
-
-
-// create an express app
-var express = require('express'),
-    app = express()
-    morgan = require('morgan'),
-	bodyParser = require('body-parser'),
-    port = process.env.PORT || 3000,
-    publicDir = require('path').join(__dirname, '/public'),
-    //socket server to web client
-    http = require('http').Server(app),
-    io = require('socket.io')(http);
-
-// add logging middleware
-app.use(morgan('dev'));
-// parsing get
-app.use(bodyParser.json());
-// add the express.static middleware to the app to
-// serve files in the specified path
-// This middleware will only call the next middleware if
-// path doesn't match the static directory
-app.use(express.static(publicDir));
-
-function lastGpsCordinate(callback){
-	db.each("select time,lon,lat from gpslog order by time desc limit 1;", function (err, data) {
-		if (err) {
-			response.writeHead(500, { "Content-type": "text/html" });
-			response.end(err + "\n");
-			console.log('Error serving querying database. ' + err);
-			return;
-		}
-		callback(data);
-	});
-}
-
-app.get('/GpsData.json', function(req, res) {
-	lastGpsCordinate(function (data) {
-	  console.log(data);
-	  res.send(data);         // automatic -> application/json
-	});
-});
-
-//socket stuff
-io.on('connection', function(socket){
-    console.log('a user connected to socketIO');
-    //send the device Id to web client
-    io.emit('data_wclient_init', devId);
-    socket.on('disconnect', function(){
-        console.log('user disconnected');
-    });
-    socket.on('data_sx127x', function(data) {
-        console.log('recieved data_sx127x:',data);
-        console.log('deviceID: ',data[0]);
-        console.log('lat :', hexToInt(bytesToHex(data.slice(1,5))) / 10000000)
-        console.log('lon :', hexToInt(bytesToHex(data.slice(5,9))) / 10000000)
-        
-        //data for webclient
-        var data = {
-            'devId' : data[0],
-            'lat': (hexToInt(bytesToHex(data.slice(1,5))) / 10000000),
-            'lon': (hexToInt(bytesToHex(data.slice(5,9))) / 10000000),
-            'time': new Date()
-        };
-        io.emit('data_web', data);
-    });
-});
-
-http.listen(port);
-
-console.log('server started on port %s', port);
-
-
-
