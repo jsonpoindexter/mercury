@@ -1,1 +1,11 @@
-Simple Express app with a popular middleware for serving static files.
+#Mercury Maps
+
+Offline map and gps tracker.
+
+## To Do:
+  * More detailed README
+  * Implement table sharing / updating
+  * Provide schematic
+  * Provide HowTo
+  * Improve auotmation of setup
+    

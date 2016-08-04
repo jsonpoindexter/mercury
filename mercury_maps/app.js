@@ -54,6 +54,8 @@ function device(id, lat, lon, time) {
 };
 
 //compare local table to recieved table and return updated table
+var localTable = [];
+var recievedTable = [];
 function UpdateLocalTable( recievedTable, localTable){
 	var newDevices = []; // will hold new found devices to be added to local table
 	for(var i = 0; i < recievedTable.length; i++){
@@ -127,6 +129,7 @@ io.on('connection', function(socket){
     socket.on('disconnect', function(){
         console.log('user disconnected');
     });
+    //handle data recieved from other LoRa devices
     socket.on('data_sx127x', function(data) {
         console.log('recieved data_sx127x:',data);
         console.log('deviceID: ',data[0]);
@@ -204,10 +207,9 @@ daemon.start(function() {
 	var listener = new gpsd.Listener();
     listener.on('TPV', function (tpv) {
 		//only collect data every GpsdInterval
-        console.log(tpv);
+        //console.log(tpv);
         //tpv.mode should be 3 since 3 means lot/lat
 		if(((new Date().getTime() - previousGpsdTime.getTime()) / 1000) > GpsdInterval && tpv.time && tpv.lat && tpv.lon && tpv.alt && tpv.speed){
-			
             previousGpsdTime = new Date();
 			var statement = db.prepare("INSERT INTO GpsLog VALUES (?, ?, ?, ?, ?)");
 			// Insert values into prepared statement
