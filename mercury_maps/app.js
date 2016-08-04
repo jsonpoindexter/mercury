@@ -45,6 +45,38 @@ function bytesToHex(bytes) {
     return hex.join("");
 }
 /*******END-Lora Payload Functions*******/
+//Create devie object
+function device(id, lat, lon, time) {
+    this.id = id;
+    this.lat = lat;
+    this.lon = lon;
+    this.time = time;
+};
+
+//compare local table to recieved table and return updated table
+function UpdateLocalTable( recievedTable, localTable){
+	var newDevices = []; // will hold new found devices to be added to local table
+	for(var i = 0; i < recievedTable.length; i++){
+		var newDevice = true;
+		for(var j = 0; j < localTable.length; j++){
+			if(recievedTable[i].id == localTable[j].id) {
+				newDevice = false;
+				if(recievedTable[i].time > localTable[j].time){
+					console.log("update local table");
+					localTable[j] = recievedTable[i];
+				}
+			}
+		}
+		if(newDevice){
+			newDevices.push(recievedTable[i])
+		}
+	}
+	for(var i = 0; i < newDevices.length; i++){
+		console.log("adding new device", newDevices[i]);
+		localTable.push(newDevices[i]);
+	}
+	return localTable;
+};
 
 
 // create an express app
@@ -172,7 +204,7 @@ daemon.start(function() {
 	var listener = new gpsd.Listener();
     listener.on('TPV', function (tpv) {
 		//only collect data every GpsdInterval
-        //console.log(tpv);
+        console.log(tpv);
         //tpv.mode should be 3 since 3 means lot/lat
 		if(((new Date().getTime() - previousGpsdTime.getTime()) / 1000) > GpsdInterval && tpv.time && tpv.lat && tpv.lon && tpv.alt && tpv.speed){
 			
@@ -225,3 +257,8 @@ daemon.start(function() {
         listener.watch();
     });
 });
+
+
+
+
+

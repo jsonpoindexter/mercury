@@ -32,7 +32,7 @@ class BOARD:
     """
     # Note that the BCOM numbering for the GPIOs is used.
     #OLD DIO0 = 22   # RaspPi GPIO 22 PIN 15
-    DIO0 = 13   # RaspPi GPIO 22 PIN 15
+    DIO0 = 13   # RaspPi GPIO 13 PIN 33
     DIO1 = 23   # RaspPi GPIO 23 PIN 16
     #OLD DIO2 = 24   # RaspPi GPIO 24 PIN 18
     DIO2 = 5   # RaspPi GPIO 5 PIN 29
