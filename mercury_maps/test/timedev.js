@@ -96,6 +96,8 @@ function bytesToHex(bytes) {
     return hex.join("");
 }
 
+/*******END-Lora Payload Functions*******/
+
 //convert time portion of payload to time
 function timePayloadToTime(timePayload){
 	timeStr = "";

@@ -9,9 +9,8 @@
       frag0: __overlay__ {
          #address-cells = <1>;
          #size-cells = <0>;
-         pinctrl-0 = <&spi0_pins &spi0_cs_pins>;
          status = "okay";
-         cs-gpios = <0>, <0>, <&gpio 20 1>, <&gpio 21 1>;
+         cs-gpios = <&gpio 8 1>, <&gpio 7 1>, <&gpio 20 1>, <&gpio 21 1>;
 
          spidev@2{
             compatible = "spidev";
@@ -32,17 +31,15 @@
    };
 
    fragment@1 {
-      target = <&gpio>;
-      __overlay__ {
-         spi0_cs_pins: spi0_cs_pins {
-            brcm,pins = <20 21>;
-            brcm,function = <1>; /* out */
-         };
+      target = <&spi0_cs_pins>;
+      frag1: __overlay__ {
+        brcm,pins = <8 7 20 21>;
+        brcm,function = <1>; /* out */
       };
    };
 
    __overrides__ {
-      cs2_pin = <&frag0>,"cs-gpios:12", <&spi0_cs_pins>,"brcm,pins:0";
-      cs3_pin = <&frag0>,"cs-gpios:24", <&spi0_cs_pins>,"brcm,pins:4";
+      cs2_pin = <&frag0>,"cs-gpios:28", <&frag1>,"brcm,pins:8";
+      cs3_pin = <&frag0>,"cs-gpios:40", <&frag1>,"brcm,pins:12";
    };
 };
