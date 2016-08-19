@@ -99,6 +99,7 @@ function bytesToHex(bytes) {
 /*******END-Lora Payload Functions*******/
 
 //convert time portion of payload to time
+//convert time portion of payload to time
 function timePayloadToTime(timePayload){
 	timeStr = "";
 	//byte array to hex string
@@ -106,8 +107,9 @@ function timePayloadToTime(timePayload){
 		timeStr += timePayload[i].toString(16)
 	}
 	//hex string to decimal
-	var time = new Date(ConvertBase.hex2dec(timeStr)).getTime();
-	return time;
+	/* var time = new Date(ConvertBase.hex2dec(timeStr)).getTime(); */
+	var time = parseFloat(ConvertBase.hex2dec(timeStr));
+    return time;
 }
 
 //take a payload and return recievedTable
@@ -119,8 +121,10 @@ function decodePayload(payload){
 			var id = payload[i * (payload.length / (i + 1))];
 			var lat = (hexToInt(bytesToHex(payload.slice(i * (payload.length / (i + 1)) + devIdsize, i * (payload.length / (i + 1)) + devIdsize + latSize))) / 10000000);
 			var lon = (hexToInt(bytesToHex(payload.slice(i * (payload.length / (i + 1)) + devIdsize + latSize, i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize))) / 10000000);
-			var timePayload = timePayloadToTime(payload.slice(i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize, i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize + timeSize)); 
-			var tempDevice = new device(id,lat,lon,time);
+            console.log(payload.slice(i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize, i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize + timeSize));
+			var timePayload = timePayloadToTime( payload.slice(i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize, i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize + timeSize) ); 
+			
+            var tempDevice = new device(id,lat,lon,timePayload);
 			recievedTable.push(tempDevice);
 		}
 		return recievedTable;
@@ -247,10 +251,12 @@ var lat = 35.987654321;
 var lon = -120.987654321;
 var time = new Date(1470277964432).getTime();
 payload = makePayload(devId, lat, lon ,time);
+console.log(payload);
 // recieve payload from SX127x
 recievedPayload = decodePayload(payload);
 //update local table against recieved table 
 updateLocalTable(recievedTable,localTable);
+
 //convert localtable to payload
 payload = localTableToPaload(localTable);
 //send out 

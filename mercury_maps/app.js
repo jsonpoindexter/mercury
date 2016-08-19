@@ -116,6 +116,7 @@ function makePayload(id,lat,lon,time){
 	
 	//Change Lat / Lon to a non decimal number
 	lat = Math.round(lat * 10000000)
+    
 	lon = Math.round(lon * 10000000)
 	
 	//convert decimal to hex string
@@ -130,9 +131,11 @@ function makePayload(id,lat,lon,time){
 	
 	
 	//fill out longitude in payload
+    //console.log('latByte.length', latByte.length);
 	for(var i = 0; i < latByte.length; i++){
 	   payload[i + devIdsize]  = latByte[i]
 	}
+    //console.log('lonByte.length',lonByte.length);
 	//fill out latitude in payload
 	for(var i = 0; i < lonByte.length; i++){
 	   payload[i + devIdsize + latSize]  = lonByte[i]
@@ -162,8 +165,9 @@ function timePayloadToTime(timePayload){
 		timeStr += timePayload[i].toString(16)
 	}
 	//hex string to decimal
-	var time = new Date(ConvertBase.hex2dec(timeStr)).getTime();
-	return time;
+	/* var time = new Date(ConvertBase.hex2dec(timeStr)).getTime(); */
+	var time = parseFloat(ConvertBase.hex2dec(timeStr));
+    return time;
 }
 
 //take a payload and return recievedTable
@@ -175,7 +179,7 @@ function decodePayload(payload){
 			var id = payload[i * (payload.length / (i + 1))];
 			var lat = (hexToInt(bytesToHex(payload.slice(i * (payload.length / (i + 1)) + devIdsize, i * (payload.length / (i + 1)) + devIdsize + latSize))) / 10000000);
 			var lon = (hexToInt(bytesToHex(payload.slice(i * (payload.length / (i + 1)) + devIdsize + latSize, i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize))) / 10000000);
-			var timePayload = timePayloadToTime(payload.slice(i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize, i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize + timeSize)); 
+			var time = timePayloadToTime(payload.slice(i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize, i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize + timeSize)); 
 			var tempDevice = new device(id,lat,lon,time);
 			recievedTable.push(tempDevice);
 		}
@@ -285,10 +289,16 @@ io.on('connection', function(socket){
     });
     //handle data recieved from other LoRa devices
     socket.on('data_sx127x', function(data) {
+       
         console.log('recieved data_sx127x:',data);
+        /* 
         console.log('deviceID: ',data[0]);
         console.log('lat :', hexToInt(bytesToHex(data.slice(1,5))) / 10000000)
-        console.log('lon :', hexToInt(bytesToHex(data.slice(5,9))) / 10000000)
+        console.log('lon :', hexToInt(bytesToHex(data.slice(5,9))) / 10000000) */
+        console.log('data_sx127x.length', data.length)
+        recievedPayload = decodePayload(data);
+    
+        localTable = updateLocalTable(recievedTable,localTable);
         
         //data for webclient
         var data = {
@@ -370,7 +380,7 @@ daemon.start(function() {
 			var lat = tpv.lat;
 			var lon = tpv.lon;
             var time = Date.parse(tpv.time);
-            
+            console.log('parsedTpvDatetime', time)
 			statement.run(time, lat, lon, tpv.alt, tpv.speed );
 			// Execute the statement
 			statement.finalize();
@@ -403,8 +413,10 @@ daemon.start(function() {
             //add new GPS units to local table
             DataFromGps(devId, lat, lon, time);
             //convert localtable to payload
+            console.log("localtable:", localTable)
             payload = localTableToPaload(localTable);
             //Send payload
+            console.log('sendpayload.length',payload.length);
             console.log('sending data_sx127x:',payload);
             
 			io.emit('data_sx127x', payload);
