@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -25,6 +26,20 @@
             document.getElementById("myDevId").innerHTML = "myDevId: " + myDevId;
         });
     </script>
+    <style>
+    .button {
+        background-color: #fdf5e6;
+        border: none;
+        color: black;
+        padding: 5px 15px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 12px;
+        margin: 4px 2px;
+        cursor: pointer;
+    }
+    </style>
 </head>
 <body>
 	<div style="position:absolute; top:0; bottom:0; width:480px;height:320px; ">
@@ -32,11 +47,14 @@
 		</div>
 		<div id="controls" style="float: bottom;width:100%; height: 100%;">
 			<div>
-				<button id="set_bmOffset" onclick="set_bmOffset()">BM Center 2015</button>
+				<button id="set_bmOffset" class="button" style="float: left" onclick="set_bmOffset()">BM Center 2016</button>
 			</div>
 			<div>
-				<button id="reset_location" onclick="reset_location()">Current Localtion</button>
+				<button id="follow_location" class="button" style="float: left" onclick="follow_location()">Follow Localtion</button>
 			</div>
+			<div>
+                <button id="shutdown" class="button" style="float: left" onclick="shutdown()">Shutdown</button>
+            </div>	
             <div id = 'myDevId'> 
             </div>
             <div id = 'p1'>   
@@ -120,9 +138,7 @@
         }
         
         var globalData;
-        
-        
-  
+
         socket.on('data_web', function(data){
             console.log(data);
              
@@ -152,7 +168,7 @@
             
             setMarkers(json);
             
-            if(data.devId == myDevId){
+            if(data.devId == myDevId && followLocation){
                 map.setView([lat,lon]);
             }
             
@@ -175,37 +191,66 @@
         
 		//move your current GPS cordinates to the center of BRC 2015
 		var bmOffset = false;
-		document.getElementById("set_bmOffset").addEventListener("click", set_bmOffset);
+		//document.getElementById("set_bmOffset").addEventListener("click", set_bmOffset);
 		//off set to relate current cordinates to center BM 2015
 		var latOffset = 0;
 		var lonOffset = 0;
-		function set_bmOffset() {	
-			bmOffset = true;
-			latOffset =  40.78640000000001 - globalData.lat;
-			lonOffset =  -119.2065 - globalData.lon;
-			console.log(latOffset);
-			console.log(lonOffset);
-            lat = globalData.lat + latOffset
-            lon = globalData.lon + lonOffset
+
+        console.log(latOffset);
+        console.log(lonOffset);
+		function set_bmOffset() {
+            latOffset =  40.78640000000001 - globalData.lat;
+            lonOffset =  -119.2065 - globalData.lon;
+            var property = document.getElementById("set_bmOffset");
+            //toggle BM offset
+            if(bmOffset){
+                property.style.backgroundColor = "#fdf5e6"
+                lat = globalData.lat ;
+                lon = globalData.lon;
+                bmOffset = false;
+            }
+            else{
+                property.style.backgroundColor = "#4CAF50"
+                lat = globalData.lat + latOffset;
+                lon = globalData.lon + lonOffset;
+                bmOffset = true;
+                //rotate map to fit BM on the screen well
+
+                
+            }
+            console.log(bmOffset);
+            //map.setBearing(130); throughs marker movements off
+            map.setView([lat,lon]);
             
 		}
-		function reset_location() {	
-			bmOffset = false;
-			latOffset =  0;
-			lonOffset =  0;
+        //defualt is lock on to your markers
+        var followLocation = true;
+		function follow_location() {
+
+            var property = document.getElementById("follow_location");
+            //toggle follow location
+            if(followLocation){
+               property.style.backgroundColor = "#fdf5e6"
+                
+                followLocation = false;
+                
+            }
+            else{
+                property.style.backgroundColor = "#4CAF50"
+                
+                map.setView([globalData.lat, globalData.lon])
+                followLocation = true;
+            }
+           
+            
 		}
-		//var bmOffset = false;
 		//move BRC 2015 cordinates to your current location
 		var bmOverlay = false;
 		
-		//create map
-		//L.mapbox.accessToken = 'pk.eyJ1IjoibXVmZmluc2F1cnVzcmV4IiwiYSI6ImNpbnVuaDFvcjExeHJ1Mm0zbnczZXFtNWMifQ.EvWoIv6R42b2rQdPBhe3TA';
-        
-		var map = L.map('map');
+		var map = L.map('map', {rotate: true, touchRotate: true});
 		map.setView([0,0], 13);
-        //map.setBearing(135);
         //map.addControl(L.map.legendControl());
-        mapLink =  '<a href="http://openstreetmap.org">OpenStreetMap</a>';
+        //mapLink =  '<a href="http://openstreetmap.org">OpenStreetMap</a>';
         /*L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
             attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
             maxZoom: 18,
@@ -218,8 +263,6 @@
                 maxZoom: 18
         }).addTo(map);
         
-        
-		//var myLayer = L.map.featureLayer().addTo(map);
 		map.scrollWheelZoom.disable();
 		//create marker properties
         var radioTower = L.icon({
@@ -256,25 +299,23 @@
             "icon": jpoindexter
           }]
         }
-		//overlay BM streets
-        /*
-		var featureLayer = L..featureLayer()
-			.loadURL('/bm15/streets.json')
-			.addTo(map); 
-            */
         var district_boundary = new L.geoJson();
         district_boundary.addTo(map);
 
         $.ajax({
             dataType: "json",
-            url: "/bm15/streets.json",
+            url: "/iBurn-Maps/2016/layers/streets/streets.geojson",
+            //url: "/bm15/streets.json",
             success: function(data) {
                 $(data.features).each(function(key, data) {
                     district_boundary.addData(data);
                 });
             }
         }).error(function() {});
-            
+	function shutdown(){
+		console.log("shutdowncommand");
+		socket.emit('shutdown');
+	}            
 	</script>
 </body>
 </html>
