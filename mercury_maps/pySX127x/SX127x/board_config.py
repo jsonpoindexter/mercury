@@ -74,7 +74,7 @@ class BOARD:
         :rtype: SpiDev
         """
         BOARD.spi = spidev.SpiDev()
-        BOARD.spi.open(0, 1)
+        BOARD.spi.open(0, 2)
         return BOARD.spi
 
     @staticmethod

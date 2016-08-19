@@ -1,0 +1,5 @@
+sudo apt-get install device-tree-compiler
+sudo nano spi-gpio-cs-overlay.dts 
+dtc -@ -I dts -O dtb -o spi-gpio-cs.dtbo spi-gpio-cs-overlay.dts           
+sudo cp spi-gpio-cs.dtbo /boot/overlays
+sudo nano /boot/config.txt
