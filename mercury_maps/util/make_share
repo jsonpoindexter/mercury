@@ -3,12 +3,12 @@ mkdir share
 cd share
 mkdir github
 
-sudo nano /home/pi/pi_user.smbcredentials
+sudo nano ~/pi_user.smbcredentials
 
 username=pi_user
 password=$rf5tg6yh
 
 sudo chmod 600 ~/pi_user.smbcredentials
 sudo nano /etc/fstab
-echo "//192.168.1.2/github /home/pi/share/github cifs credentials=/home/pi/pi_user.smbcredentials,iocharset=utf8,sec=ntlm 0 0" >> /etc/fstab
+echo "//192.168.1.2/github /home/pi/share/github cifs credentials=~/pi_user.smbcredentials,iocharset=utf8,sec=ntlm 0 0" >> /etc/fstab
 mount -a
