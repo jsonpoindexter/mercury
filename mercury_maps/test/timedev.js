@@ -240,7 +240,7 @@ var localTable = [];
 var devId = 1;
 var lat = 32.123456789;
 var lon = -120.123456789
-var time = new Date(1470277964432).getTime();
+var time = 1471495029000;
 makePayload(devId, lat, lon ,time);
 DataFromGps(devId, lat, lon, time);
 
