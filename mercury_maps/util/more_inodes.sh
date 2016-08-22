@@ -18,7 +18,7 @@ w
 
 sudo reboot
 #after reboot x being the partition created
-sudo mke2fs /dev/mmcblk0p3 -t ext4 -b 1024 -N 1500000
+sudo mke2fs /dev/mmcblk0p3 -t ext4 -N 2000000
 
 # mount it mnualls
 sudo mkdir /projects
