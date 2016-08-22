@@ -287,6 +287,9 @@ io.on('connection', function(socket){
     socket.on('disconnect', function(){
         console.log('user disconnected');
     });
+    socket.on('shutdown', function() {
+            child = exec("shutdown now");
+    });
     //handle data recieved from other LoRa devices
     socket.on('data_sx127x', function(data) {
        
