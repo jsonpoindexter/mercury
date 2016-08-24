@@ -4,6 +4,13 @@ var devId = hexToBytes(decimalToHexString(process.argv[2]));
 devId = devId[0]
 console.log("devId: ", devId);
 
+// http://nodejs.org/api.html#_child_processes
+var sys = require('sys')
+var exec = require('child_process').exec;
+var child;
+//exec("su -l pi -c 'env FRAMEBUFFER=/dev/fb1 startx &'");
+//exec("su -l pi -c 'xinit ./util/startB &'");
+
 var localTable = [];
 var recievedTable = [];
 
@@ -318,10 +325,7 @@ http.listen(port);
 
 console.log('server started on port %s', port);
 
-// http://nodejs.org/api.html#_child_processes
-var sys = require('sys')
-var exec = require('child_process').exec;
-var child;
+
 
 //SQL
 var sqlite3 = require('sqlite3');
@@ -383,7 +387,7 @@ daemon.start(function() {
 			var lat = tpv.lat;
 			var lon = tpv.lon;
             var time = Date.parse(tpv.time);
-            console.log('parsedTpvDatetime', time)
+            //console.log('parsedTpvDatetime', time)
 			statement.run(time, lat, lon, tpv.alt, tpv.speed );
 			// Execute the statement
 			statement.finalize();
@@ -416,7 +420,7 @@ daemon.start(function() {
             //add new GPS units to local table
             DataFromGps(devId, lat, lon, time);
             //convert localtable to payload
-            console.log("localtable:", localTable)
+            //console.log("localtable:", localTable)
             payload = localTableToPaload(localTable);
             //Send payload
             console.log('sendpayload.length',payload.length);
@@ -439,6 +443,7 @@ daemon.start(function() {
         listener.watch();
     });
 });
+
 
 
 
