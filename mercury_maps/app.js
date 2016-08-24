@@ -4,6 +4,10 @@ var devId = hexToBytes(decimalToHexString(process.argv[2]));
 devId = devId[0]
 console.log("devId: ", devId);
 
+var secret =  "332b4c5b2570522f74463944585b5877"
+var secretBytes = hexToBytes(secret);
+
+
 // create an express app
 var express = require('express'),
     app = express()
@@ -321,7 +325,7 @@ function makePayload(devId,lat,lon,time){
 	//fill out longitude in payload
     //console.log('latByte.length', latByte.length);
 	for(var i = 0; i < latByte.length; i++){
-	   payload[i + size]  = latByte[i]
+	   payload[i + devIdsize]  = latByte[i]
 	}
     //console.log('lonByte.length',lonByte.length);
 	//fill out latitude in payload
@@ -361,10 +365,11 @@ function timePayloadToTime(timePayload){
 //take a payload and return recievedTable
 function decodePayload(payload){
 	//filter out packets that do not correspond with payload sizes.
-	if(payload.length % devicePayloadSize === 0){
+    if((bytesToHex(payload.slice(0,secretBytes.length)) == secret) && ( (payload.length - secretBytes.length ) % devicePayloadSize == 0)){
+	//if(payload.length % devicePayloadSize == 0){
 		recievedTable = new Array();
 		for(var i = 0; i < payload.length / devicePayloadSize; i++){
-			var devId = payload[i * (payload.length / (i + 1))];
+			var devId = payload[(i + secretBytes.length) * (payload.length / (i + 1))];
 			var lat = (hexToInt(bytesToHex(payload.slice(i * (payload.length / (i + 1)) + devIdsize, i * (payload.length / (i + 1)) + devIdsize + latSize))) / 10000000);
 			var lon = (hexToInt(bytesToHex(payload.slice(i * (payload.length / (i + 1)) + devIdsize + latSize, i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize))) / 10000000);
 			var time = timePayloadToTime(payload.slice(i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize, i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize + timeSize)); 
