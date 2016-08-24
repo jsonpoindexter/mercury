@@ -295,12 +295,12 @@ function bytesToHex(bytes) {
 }
 
 // take id, lat lon, and time and turns it into a byte array
-function makePayload(id,lat,lon,time){ 
+function makePayload(devId,lat,lon,time){ 
 	//data from SX127x / socketio
 	var payload = new Array()
 	
 	//add devId to payload
-	payload[0] = id //add device id to the first bye
+	payload[0] = devId //add device id to the first bye
 	
 	//Change Lat / Lon to a non decimal number
 	lat = Math.round(lat * 10000000)
@@ -321,7 +321,7 @@ function makePayload(id,lat,lon,time){
 	//fill out longitude in payload
     //console.log('latByte.length', latByte.length);
 	for(var i = 0; i < latByte.length; i++){
-	   payload[i + devIdsize]  = latByte[i]
+	   payload[i + size]  = latByte[i]
 	}
     //console.log('lonByte.length',lonByte.length);
 	//fill out latitude in payload
@@ -364,11 +364,11 @@ function decodePayload(payload){
 	if(payload.length % devicePayloadSize === 0){
 		recievedTable = new Array();
 		for(var i = 0; i < payload.length / devicePayloadSize; i++){
-			var id = payload[i * (payload.length / (i + 1))];
+			var devId = payload[i * (payload.length / (i + 1))];
 			var lat = (hexToInt(bytesToHex(payload.slice(i * (payload.length / (i + 1)) + devIdsize, i * (payload.length / (i + 1)) + devIdsize + latSize))) / 10000000);
 			var lon = (hexToInt(bytesToHex(payload.slice(i * (payload.length / (i + 1)) + devIdsize + latSize, i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize))) / 10000000);
 			var time = timePayloadToTime(payload.slice(i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize, i * (payload.length / (i + 1)) + devIdsize + latSize + lonSize + timeSize)); 
-			var tempDevice = new device(id,lat,lon,time);
+			var tempDevice = new device(devId,lat,lon,time);
 			recievedTable.push(tempDevice);
 		}
 		return recievedTable;
@@ -379,8 +379,8 @@ function decodePayload(payload){
 }
 
 //Create devie object
-function device(id, lat, lon, time) {
-    this.id = id;
+function device(devId, lat, lon, time) {
+    this.devId = devId;
     this.lat = lat;
     this.lon = lon;
     this.time = time;
@@ -392,7 +392,7 @@ function updateLocalTable( recievedTable, localTable){
 	for(var i = 0; i < recievedTable.length; i++){
 		var newDevice = true;
 		for(var j = 0; j < localTable.length; j++){
-			if(recievedTable[i].id == localTable[j].id) {
+			if(recievedTable[i].devId == localTable[j].devId) {
 				newDevice = false;
 				if(recievedTable[i].time > localTable[j].time){
 					console.log("update local table", recievedTable[i]);
@@ -414,14 +414,14 @@ function updateLocalTable( recievedTable, localTable){
 function localTableToPaload(localTable){
 	var payload = new Array()
 	for(var i = 0; i < localTable.length; i++){
-		payload = payload.concat( makePayload(localTable[i].id, localTable[i].lat, localTable[i].lon, localTable[i].time ) );
+		payload = payload.concat( makePayload(localTable[i].devId, localTable[i].lat, localTable[i].lon, localTable[i].time ) );
 	}
 	return payload;
 }
 
 //simulate data in from GPS
-function DataFromGps(id, lat, lon, time){
-    var myDevice = new device(id, lat, lon, time);
+function DataFromGps(devId, lat, lon, time){
+    var myDevice = new device(devId, lat, lon, time);
     var recievedTable = [];
     recievedTable.push(myDevice);
     localTable = updateLocalTable(recievedTable,localTable);

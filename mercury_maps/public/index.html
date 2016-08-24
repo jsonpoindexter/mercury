@@ -9,6 +9,11 @@
     <script src='/Leaflet/debug/leaflet-include.js'></script> 
     <!-- <link href='https://npmcdn.com/leaflet@1.0.0-rc.2/dist/leaflet.css' rel='stylesheet' /> -->
     <link rel="stylesheet" href="/Leaflet/dist/leaflet.css" />
+    
+    <script src='/easy-button/easy-button.js'></script> 
+    <link rel="stylesheet" href="/easy-button/easy-button.css" />
+    
+    
 	<!-- <script type="text/javascript" src="http://code.jquery.com/jquery-1.4.2.js"></script> -->
     <script src="/jquery.min.js" type="text/javascript"></script>
     <style>
@@ -278,14 +283,28 @@
         }
         
         var globalData;
-
+        
+        function updateMarkers(item, index){
+            console.log("item:" , item);
+            //update lat/on for that device object
+            json.BMS[item[index].devId - 1].lat = item[index].lat;
+            json.BMS[item[index].devId - 1].lon = item[index].lon;
+            json.BMS[item[index].devId - 1].time = item[index].time;
+            console.log("done");
+        };
+        
+        
         socket.on('data_web', function(data){
             console.log('datafromsocket: ',data);
             
+            data.forEach(updateMarkers);
+            setMarkers(json);
             
-            myList = [data];
+            /*
+            
+            //myList = [data];
             //updateHtmlTable(myList);
-            buildHtmlTable(myList);
+           // buildHtmlTable(myList);
             
             globalData = data;
             if(bmOffset){
@@ -327,6 +346,7 @@
                 document.getElementById("p1").innerHTML = "";
                 connectedDevices.forEach(displayDeviceDistance) 
             }*/
+            
         });
         
         /*setInterval(function(){ 
@@ -337,11 +357,11 @@
 		var bmOffset = false;
 		//document.getElementById("set_bmOffset").addEventListener("click", set_bmOffset);
 		//off set to relate current cordinates to center BM 2015
-		var latOffset = 0;
-		var lonOffset = 0;
+		//var latOffset = 0;
+		//var lonOffset = 0;
 
-        console.log(latOffset);
-        console.log(lonOffset);
+        //console.log(latOffset);
+        //console.log(lonOffset);
 		function set_bmOffset() {
             //latOffset =  40.78640000000001 - globalData.lat;
            // lonOffset =  -119.2065 - globalData.lon;
@@ -386,12 +406,9 @@
 		} 
 		//move BRC 2015 cordinates to your current location
 		var bmOverlay = false;
-		
+	
 		var map = L.map('map', {rotate: true, touchRotate: true});
-        
-        L.easyButton( '<span class="star">&starf;</span>', function(){
-          alert('you just clicked the html entity \&starf;');
-        }).addTo(htmlStar);
+
    
 		map.setView([0,0], 13);
         //map.addControl(L.map.legendControl());
