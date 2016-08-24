@@ -282,10 +282,10 @@
         socket.on('data_web', function(data){
             console.log('datafromsocket: ',data);
             
-            /*
+            
             myList = [data];
-            updateHtmlTable(myList);
-            buildHtmlTable(myList);*/
+            //updateHtmlTable(myList);
+            buildHtmlTable(myList);
             
             globalData = data;
             if(bmOffset){
@@ -388,6 +388,11 @@
 		var bmOverlay = false;
 		
 		var map = L.map('map', {rotate: true, touchRotate: true});
+        
+        L.easyButton( '<span class="star">&starf;</span>', function(){
+          alert('you just clicked the html entity \&starf;');
+        }).addTo(htmlStar);
+   
 		map.setView([0,0], 13);
         //map.addControl(L.map.legendControl());
         //mapLink =  '<a href="http://openstreetmap.org">OpenStreetMap</a>';
