@@ -9,6 +9,11 @@
     <script src='/Leaflet/debug/leaflet-include.js'></script> 
     <!-- <link href='https://npmcdn.com/leaflet@1.0.0-rc.2/dist/leaflet.css' rel='stylesheet' /> -->
     <link rel="stylesheet" href="/Leaflet/dist/leaflet.css" />
+    
+    <script src='/easy-button/easy-button.js'></script> 
+    <link rel="stylesheet" href="/easy-button/easy-button.css" />
+    
+    
 	<!-- <script type="text/javascript" src="http://code.jquery.com/jquery-1.4.2.js"></script> -->
     <script src="/jquery.min.js" type="text/javascript"></script>
     <style>
@@ -46,7 +51,7 @@
 	//var myList=[{"DevId" : "", "LastGPS" : "" , "LastTx" : "", "LastRX" : ""}];
 
 	// Builds the HTML Table out of myList json data from Ivy restful service.
-	 function buildHtmlTable() {
+	 function buildHtmlTable(myList) {
         $("#excelDataTable").empty();
 		 var columns = addAllColumnHeaders(myList);
          
@@ -66,7 +71,7 @@
 	 // Adds a header row to the table and returns the set of columns.
 	 // Need to do union of keys from all records as some records may not contain
 	 // all records
-	 function addAllColumnHeaders()
+	 function addAllColumnHeaders(myList)
 	 {
 		 var columnSet = [];
 		 var headerTr$ = $('<tr/>');
@@ -87,15 +92,7 @@
 	 
 
 	</script>
-    <script>
-        //devices ID
-        var myDevId
-        var socket = io();
-        var connectedDevices = [];
-        socket.on('data_wclient_init', function(data){
-            console.log('myDevId :', data);
-            myDevId = data;
-        });
+       
     </script>
 	<style>/* Dropdown Button */
 	.dropbtn {
@@ -113,7 +110,8 @@
 
 	.dropdown {
 		position: absolute;
-		width: 100%; 
+		width: 430px; 
+        height 320px;
 		bottom:0;
 		display:inline-block;
 
@@ -123,7 +121,7 @@
 		display: none;
 		position: relative;
 		background-color: #f9f9f9;
-		width: 480px;
+		width: 100%;
 		height: 100%;
 		overflow: auto;
 		//box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
@@ -149,6 +147,7 @@
 	table, th, td {
 		font-size: 12px;
 		border: 1px solid black;
+        text-align: right;
 	}
 
 		
@@ -160,19 +159,19 @@
 	<!-- <div style="position:realitve; top:0; bottom:0; width:480px;height:320px;background-color: grey;color: black; "> -->
 	<div id="map-wrapper">
 		<div id='map'>
-			<div id="controls" style="position: relative;z-index: 9999;" >
-				<div class="dropdown" >
-					<button onclick="myFunction()" class="dropbtn"></button>
-					<div id="myDropdown" class="dropdown-content">
+			<!-- <div id="controls" style="position: relative;z-index: 9999;" > -->
+				<div class="dropdown" style="position: relative; z-index: 9999; left: 50px; width: 430px; height 320px;">
+					<!-- <button onclick="myFunction()" class="dropbtn"></button> -->
+					<div id="myDropdown" class="dropdown-content" style="height 320px;">
 						<div id="set_bmOffset"  onclick="set_bmOffset()">BM Center 2016</div>
 						<div id="follow_location" onclick="follow_location()">Follow Localtion</div>
-						<div id="shutdown" onclick="shutdown()">Shutdown</div>
-						<div>
+                        <div>
 							<table id="excelDataTable" border="1"></table>
 						</div>  
+						<div id="shutdown" onclick="shutdown()" style="bottom: 0;">Shutdown</div>
 					</div>
 				</div> 
-			</div>
+			<!-- </div>  -->
 		</div> 
 
 	</div>
@@ -203,91 +202,65 @@
     <script type="text/javascript">
         
     </script>
-	 <script type="text/javascript">
-        var devMarkerGroup = [];
-        var group = new L.featureGroup();
-        //holds map markers
-        var markers = {};
-        //gets distance between two points
-        function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2) {
-          var R = 6371; // Radius of the earth in km
-          var dLat = deg2rad(lat2-lat1);  // deg2rad below
-          var dLon = deg2rad(lon2-lon1); 
-          var a = 
-            Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-            Math.sin(dLon/2) * Math.sin(dLon/2); 
-          var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-          var d = R * c; // Distance in km
-          return d;
-        }
-        function deg2rad(deg) {
-          return deg * (Math.PI/180)
-        }
-        //creates new markers and/or updates markers lat/lon
-        function setMarkers(data) {
-            data.BMS.forEach(function (obj) {
-                //console.log('obj.id :',  obj.id);
-                //console.log('res :', $.inArray(obj.id, connectedDevices));
-                //if the object device has actually connected then create it and/or update lat on
-                if($.inArray(obj.id, connectedDevices) >= 0){
-                    if (!markers.hasOwnProperty(obj.id)) {
-                        markers[obj.id] = new L.Marker([obj.lat, obj.lon], {icon: obj.icon}).addTo(map);
-                        devMarkerGroup.push(markers[obj.id]);
-                        group = new L.featureGroup(devMarkerGroup);
-                        //keep track of times signals were recieved
-                        markers[obj.id].currentTime = obj.time;
-                    } else {  
-                        markers[obj.id].setLatLng([obj.lat, obj.lon]);
-                        //update recieved signal times
-                        markers[obj.id].currentTime = obj.time;
-                        
-                    }
-                }
+	<script type="text/javascript">
+        //////SOCKET HANDLER //////
+        //var json = [];
+           //devices I
+        
+        var myDevId
+        var socket = io();
+        var connectedDevices = [];
+        socket.on('data_wclient_init', function(data){
+            console.log('myDevId :', data);
+            myDevId = data;
+            /*json.push({
+                "devId": myDevId,
+                "lat":  0,
+                "lon": 0,
+                "icon": myDevId
+            });*/
+            
+        });
+        
+        
+
+        
+        function createDisplaytable(item, index){
+            displayTable.push( {
+                'devId' : item.devId,
+                'lastSignal' : DateDif(markers[item.devId].lastRecieved, new Date()).Seconds
             });
-        }
-        //Display distance to each device
-        function displayDeviceDistance(item, index) {
-            //console.log('myDevId',myDevId,markers[myDevId].getLatLng().lat,markers[myDevId].getLatLng().lng);
-            //console.log('item',item,markers[item].getLatLng().lat,markers[item].getLatLng().lng);
-            document.getElementById("p1").innerHTML += "<br>" + "DevId" + item + " distance: " + getDistanceFromLatLonInKm(
-                markers[myDevId].getLatLng().lat,
-                markers[myDevId].getLatLng().lng,
-                markers[item].getLatLng().lat,
-                markers[item].getLatLng().lng
-            ).toFixed(3) + "km</br>";
-        }   
-        function displayTimeDif(item, index){
-            console.log( "LastSignalTimeDif: " + item + "  " +  DateDif(markers[item].currentTime, new Date()).MilliSeconds);  
-            //console.log(DateDif(markers[item].previousTime, markers[item].currentTime));
-        };
-        //sorts num arrays
-        function sortNumber(a,b) {
-            return a - b;
-        }
-        //returns difference between two dates
-        function DateDif(date1, date2){
-            var diff = new Object();
-            diffMs = (date2 - date1); // milliseconds between now & date2
-            diff.Days = Math.round(diffMs / 86400000); // days
-            diff.Hours = Math.round((diffMs % 86400000) / 3600000); // hours
-            diff.Minutes = Math.round(((diffMs % 86400000) % 3600000) / 60000); // minutes
-            diff.Seconds = Math.round(diffMs / 1000); // seconds
-            diff.MilliSeconds = diffMs;
-            return diff
+            
         }
         
-        var globalData;
-
+        
+        //refreshes dev info table
+        setInterval(function(){ 
+            if(globalData){
+                displayTable = [];
+                globalData.forEach(createDisplaytable);
+                buildHtmlTable(displayTable);
+            }
+        }, 1000);
+        
+        
+        var displayTable = [];
         socket.on('data_web', function(data){
             console.log('datafromsocket: ',data);
+            setMarkers(data);
+            globalData = data;
+            
+            //displayTable = [];
+            //data.forEach(createDisplaytable);
+            //buildHtmlTable(displayTable);
+           //dispalyTable(data);
             
             /*
-            myList = [data];
-            updateHtmlTable(myList);
-            buildHtmlTable(myList);*/
             
-            globalData = data;
+            
+           // buildHtmlTable(myList);
+            
+            
             if(bmOffset){
                 var lat = data.lat + latOffset
                 var lon = data.lon + lonOffset
@@ -327,8 +300,127 @@
                 document.getElementById("p1").innerHTML = "";
                 connectedDevices.forEach(displayDeviceDistance) 
             }*/
+            
         });
         
+     
+        //////MARKERS//////
+     
+        var devMarkerGroup = [];
+        var group = new L.featureGroup();
+        //holds map markers
+        var markers = {};
+        //gets distance between two points
+        function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2) {
+          var R = 6371; // Radius of the earth in km
+          var dLat = deg2rad(lat2-lat1);  // deg2rad below
+          var dLon = deg2rad(lon2-lon1); 
+          var a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+            Math.sin(dLon/2) * Math.sin(dLon/2); 
+          var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+          var d = R * c; // Distance in km
+          return d;
+        }
+        function deg2rad(deg) {
+          return deg * (Math.PI/180)
+        }
+        //creates new markers and/or updates markers lat/lon / also follow location 
+        function setMarkers(data) {
+            data.forEach(function (obj) {
+                //console.log('obj.devId :',  obj.devId);
+                //console.log('res :', $.inArray(obj.devId, connectedDevices));
+                //if the object device has actually connected then create it and/or update lat on
+               // if($.inArray(obj.devId, connectedDevices) >= 0){
+                if (!markers.hasOwnProperty(obj.devId)) {
+                
+        
+                
+                    obj.icon = L.icon({
+                        iconUrl: '/markers/' + obj.devId + '.jpg',
+                        //shadowUrl: 'leaf-shadow.png',
+
+                        iconSize:     [12.5, 12.5], // size of the icon
+                        //shadowSize:   [50, 64], // size of the shadow
+                        iconAnchor:   [12.5/2, 12.5/2], // point of the icon which will correspond to marker's location
+                        //shadowAnchor: [4, 62],  // the same for the shadow
+                        popupAnchor:  [0, 0] // point from which the popup should open relative to the iconAnchor
+                    });
+                    console.log('obj', obj)
+                    console.log("setmarker")
+                    markers[obj.devId] = new L.Marker([obj.lat, obj.lon]).addTo(map);
+                    //markers[obj.devId].bindPopup("<b>Hello world!</b><br>I am a popup.").openPopup();
+                    devMarkerGroup.push(markers[obj.devId]);
+                    group = new L.featureGroup(devMarkerGroup);
+                    //keep track of times signals were recieved
+                    markers[obj.devId].lastRecieved = new Date();
+
+                } else {  
+                    markers[obj.devId].setLatLng([obj.lat, obj.lon]);
+                    //update recieved signal times
+                    markers[obj.devId].lastRecieved = new Date();   
+                }
+                //}
+                if(followLocation){
+                    if(obj.devId == myDevId){
+                        map.setView([obj.lat, obj.lon]);
+                    }
+                }
+            });
+        }
+        //Display distance to each device
+        function displayDeviceDistance(item, index) {
+            //console.log('myDevId',myDevId,markers[myDevId].getLatLng().lat,markers[myDevId].getLatLng().lng);
+            //console.log('item',item,markers[item].getLatLng().lat,markers[item].getLatLng().lng);
+            /*document.getElementById("p1").innerHTML += "<br>" + "DevId" + item + " distance: " + getDistanceFromLatLonInKm(
+                markers[myDevId].getLatLng().lat,
+                markers[myDevId].getLatLng().lng,
+                markers[item].getLatLng().lat,
+                markers[item].getLatLng().lng
+            ).toFixed(3) + "km</br>"; */
+        }   
+        function displayTimeDif(item, index){
+            console.log( "LastSignalTimeDif: " + item + "  " +  DateDif(markers[item].time, new Date()).MilliSeconds);  
+            //console.log(DateDif(markers[item].previousTime, markers[item].time));
+        };
+        //sorts num arrays
+        function sortNumber(a,b) {
+            return a - b;
+        }
+        //returns difference between two dates
+        function DateDif(date1, date2){
+            var diff = new Object();
+            diffMs = (date2 - date1); // milliseconds between now & date2
+            diff.Days = Math.round(diffMs / 86400000); // days
+            diff.Hours = Math.round((diffMs % 86400000) / 3600000); // hours
+            diff.Minutes = Math.round(((diffMs % 86400000) % 3600000) / 60000); // minutes
+            diff.Seconds = Math.round(diffMs / 1000); // seconds
+            diff.MilliSeconds = diffMs;
+            return diff
+        }
+        
+        var globalData;
+        /*
+        function updateMarkers(item, index){
+            console.log("item:" , item);
+            console.log("json:" , json);
+            //update lat/on for that device object
+            if($.inArray(obj.devId, connectedDevices) >= 0){
+            
+            
+            }else{
+            
+            }
+            
+            json[item.devId - 1].lat = item.lat;
+            json[item.devId - 1].lon = item.lon;
+            json[item.devId - 1].time = item.time;
+            console.log("updateMarkers done");
+        }; */
+        
+        
+   
         /*setInterval(function(){ 
             connectedDevices.forEach(displayTimeDif); 
         }, 5000);*/
@@ -337,11 +429,11 @@
 		var bmOffset = false;
 		//document.getElementById("set_bmOffset").addEventListener("click", set_bmOffset);
 		//off set to relate current cordinates to center BM 2015
-		var latOffset = 0;
-		var lonOffset = 0;
+		//var latOffset = 0;
+		//var lonOffset = 0;
 
-        console.log(latOffset);
-        console.log(lonOffset);
+        //console.log(latOffset);
+        //console.log(lonOffset);
 		function set_bmOffset() {
             //latOffset =  40.78640000000001 - globalData.lat;
            // lonOffset =  -119.2065 - globalData.lon;
@@ -386,8 +478,11 @@
 		} 
 		//move BRC 2015 cordinates to your current location
 		var bmOverlay = false;
-		
+	
+    
+        //////MAPS SETUP//////
 		var map = L.map('map', {rotate: true, touchRotate: true});
+        
 		map.setView([0,0], 13);
         //map.addControl(L.map.legendControl());
         //mapLink =  '<a href="http://openstreetmap.org">OpenStreetMap</a>';
@@ -403,6 +498,11 @@
                 maxZoom: 18
         }).addTo(map);
         
+        L.easyButton('fa-globe', function(btn, map){
+            myFunction();
+            //helloPopup.setLatLng(map.getCenter()).openOn(map);
+        }).addTo( map ); // probably just `map`
+        
 		map.scrollWheelZoom.disable();
 		//create marker properties
         var radioTower = L.icon({
@@ -415,30 +515,23 @@
             //shadowAnchor: [4, 62],  // the same for the shadow
             popupAnchor:  [0, 0] // point from which the popup should open relative to the iconAnchor
         });
-        var jpoindexter = L.icon({
-            iconUrl: '/markers/jpoindexter.jpg',
-            //shadowUrl: 'leaf-shadow.png',
-
-            iconSize:     [12.5, 12.5], // size of the icon
-            //shadowSize:   [50, 64], // size of the shadow
-            iconAnchor:   [12.5/2, 12.5/2], // point of the icon which will correspond to marker's location
-            //shadowAnchor: [4, 62],  // the same for the shadow
-            popupAnchor:  [0, 0] // point from which the popup should open relative to the iconAnchor
-        });
+        
+        /*
         
         var json = {
           "BMS":[{
-            "id": 1,
+            "devId": 1,
             "lat":  0,
             "lon": 0,
-            "icon": radioTower
+            "icon": devId
           },{
-            "id": 2,
+            "devId": 2,
             "lat": 0,
             "lon": 0,
-            "icon": jpoindexter
+            "icon": devId
           }]
         }
+        */
         var district_boundary = new L.geoJson();
         district_boundary.addTo(map);
 
