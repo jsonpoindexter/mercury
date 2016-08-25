@@ -1,0 +1,2 @@
+sudo cp /home/pi/share/github/mercury/mercury_maps/* /projects/mercury/mercury_maps -r -v
+sudo rsync -av --progress --exclude="mercury_maps/public/tiles"  --exclude "mercury_maps/util/rpi_images" /home/pi/share/github/mercury/mercury_maps /projects/mercury

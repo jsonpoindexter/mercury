@@ -366,7 +366,7 @@ function timePayloadToTime(timePayload){
 function decodePayload(payload){
 	//filter out packets that do not correspond with payload sizes.
     if((bytesToHex(payload.slice(0,secretBytes.length)) == secret) && ( (payload.length - secretBytes.length ) % devicePayloadSize == 0)){
-	//if(payload.length % devicePayloadSize == 0){
+        payload = payload.slice(secretBytes.length,payload.length);
 		recievedTable = new Array();
 		for(var i = 0; i < payload.length / devicePayloadSize; i++){
 			var devId = payload[(i + secretBytes.length) * (payload.length / (i + 1))];
@@ -418,9 +418,13 @@ function updateLocalTable( recievedTable, localTable){
 
 function localTableToPaload(localTable){
 	var payload = new Array()
+    payload = payload.concat(secretBytes);
+    console.log('payloadafs:',payload );
 	for(var i = 0; i < localTable.length; i++){
-		payload = payload.concat( makePayload(localTable[i].devId, localTable[i].lat, localTable[i].lon, localTable[i].time ) );
+		payload = payload.concat(makePayload(localTable[i].devId, localTable[i].lat, localTable[i].lon, localTable[i].time ) );
 	}
+    
+    console.log('payloadafs:',payload );
 	return payload;
 }
 
